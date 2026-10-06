@@ -1,5 +1,3 @@
-
-Search results screen · DART
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -501,4 +499,3 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
- 
