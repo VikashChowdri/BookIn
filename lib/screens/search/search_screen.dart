@@ -1,5 +1,3 @@
-
-Search screen · DART
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
@@ -239,4 +237,3 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
- 
