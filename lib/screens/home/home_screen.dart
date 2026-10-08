@@ -5,6 +5,7 @@ import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
+import '../../utils/app_notification.dart';
 import '../../widgets/options_menu.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -163,6 +164,23 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       actions: [
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.notifications_rounded, size: 20),
+            tooltip: 'Simulate Review Notification',
+            onPressed: () {
+              AppNotification.showReviewNotification(context);
+            },
+          ),
+        ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
