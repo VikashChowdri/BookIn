@@ -52,6 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       _showError(e.message);
     } catch (e) {
+      debugPrint('Login error: ${e.runtimeType} — $e');
       if (!mounted) return;
       _showError('An unexpected error occurred. Please try again.');
     } finally {
