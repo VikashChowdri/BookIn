@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
+import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -31,24 +32,30 @@ class _SearchScreenState extends State<SearchScreen> {
  
   final TextEditingController _controller = TextEditingController();
   String get _text => _controller.text.trim();
- 
-  // ───────── data ─────────
-  List<Book> get _suggestions {
-    final q = _text.toLowerCase();
-    if (q.isEmpty) return [];
-    return dummyBooks
-        .where((b) =>
-            b.title.toLowerCase().contains(q) ||
-            b.author.toLowerCase().contains(q) ||
-            b.subject.toLowerCase().contains(q))
-        .take(AppConstants.maxSuggestions + 1)
-        .toList();
+  
+  List<Book> _allBooks = [];
+  List<_Topic> _cachedTopics = [];
+  List<Book> _cachedTrending = [];
+  List<Book> _cachedRecommended = [];
+  StreamSubscription<List<Book>>? _booksSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _booksSub = DatabaseService.instance.getBooksStream().listen((books) {
+      if (mounted) {
+        setState(() {
+          _allBooks = books;
+          _updateCachedData();
+        });
+      }
+    });
   }
- 
-  /// Builds the chips from the real books. Topics with 2+ books get a 🔥.
-  List<_Topic> get _topics {
+
+  void _updateCachedData() {
+    // Cache Topics
     final counts = <String, int>{};
-    for (final b in dummyBooks) {
+    for (final b in _allBooks) {
       for (final k in [b.subject, b.category, b.department]) {
         counts[k] = (counts[k] ?? 0) + 1;
       }
@@ -58,26 +65,36 @@ class _SearchScreenState extends State<SearchScreen> {
     final hotLabels = ranked.take(3).map((e) => e.key).toSet();
  
     final all = <_Topic>[
-      for (final s in dummyBooks.map((b) => b.subject).toSet())
+      for (final s in _allBooks.map((b) => b.subject).toSet())
         _Topic(s, query: s, hot: hotLabels.contains(s)),
-      for (final c in dummyBooks.map((b) => b.category).toSet())
+      for (final c in _allBooks.map((b) => b.category).toSet())
         _Topic(c, category: c, hot: hotLabels.contains(c)),
-      for (final d in dummyBooks.map((b) => b.department).toSet())
+      for (final d in _allBooks.map((b) => b.department).toSet())
         _Topic(d, department: d, hot: hotLabels.contains(d)),
     ];
-    // 🔥 ones first, like Savana
-    return [...all.where((t) => t.hot), ...all.where((t) => !t.hot)];
+    _cachedTopics = [...all.where((t) => t.hot), ...all.where((t) => !t.hot)];
+
+    // Cache Trending
+    _cachedTrending = _allBooks.where((b) => b.available).take(6).toList();
+
+    // Cache Recommended
+    final seenIds = FavoritesManager.instance.recentlyViewed.map((b) => b.id).toSet();
+    final list = _allBooks.where((b) => !seenIds.contains(b.id)).toList()
+      ..sort((a, b) => relevanceScore(b, '').compareTo(relevanceScore(a, '')));
+    _cachedRecommended = list.take(6).toList();
   }
  
-  List<Book> get _trending =>
-      dummyBooks.where((b) => b.available).take(6).toList();
- 
-  List<Book> get _recommended {
-    final seenIds =
-        FavoritesManager.instance.recentlyViewed.map((b) => b.id).toSet();
-    final list = dummyBooks.where((b) => !seenIds.contains(b.id)).toList()
-      ..sort((a, b) => relevanceScore(b, '').compareTo(relevanceScore(a, '')));
-    return list.take(6).toList();
+  // ───────── data ─────────
+  List<Book> get _suggestions {
+    final q = _text.toLowerCase();
+    if (q.isEmpty) return [];
+    return _allBooks
+        .where((b) =>
+            b.title.toLowerCase().contains(q) ||
+            b.author.toLowerCase().contains(q) ||
+            b.subject.toLowerCase().contains(q))
+        .take(AppConstants.maxSuggestions + 1)
+        .toList();
   }
  
   // ───────── actions ─────────
@@ -110,6 +127,7 @@ class _SearchScreenState extends State<SearchScreen> {
  
   @override
   void dispose() {
+    _booksSub?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -163,7 +181,7 @@ class _SearchScreenState extends State<SearchScreen> {
           spacing: 10,
           runSpacing: 12,
           children: [
-            for (final t in _topics)
+            for (final t in _cachedTopics)
               PillChip(
                 label: t.label,
                 hot: t.hot,
@@ -175,8 +193,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
           ],
         ),
-        if (hasHistory) _shelf('Recommended For You', _recommended),
-        _shelf('Trending Now', _trending),
+        if (hasHistory) _shelf('Recommended For You', _cachedRecommended),
+        _shelf('Trending Now', _cachedTrending),
       ],
     );
   }
