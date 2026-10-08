@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
+import '../../data/services/auth_service.dart';
+import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -30,66 +31,85 @@ class _MyListingsScreenState extends State<MyListingsScreen>
     super.dispose();
   }
 
-  // In a real app, filter by logged-in user. For now, show all books.
-  List<Book> get _allListings => dummyBooks;
-
-  List<Book> get _availableListings =>
-      _allListings.where((b) => b.available).toList();
-
-  List<Book> get _soldListings =>
-      _allListings.where((b) => !b.available).toList();
-
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    final userId = AuthService.instance.currentUser?.uid;
+    if (userId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('My Listings')),
+        body: const Center(child: Text('Please log in to view listings')),
+      );
+    }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Listings'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded),
-            tooltip: 'Add Book',
-            onPressed: () async {
-              await Navigator.pushNamed(context, AppRoutes.addBook);
-              setState(() {}); // Refresh after adding
+    return StreamBuilder<List<Book>>(
+      stream: DatabaseService.instance.getUserBooksStream(userId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('My Listings')),
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('My Listings')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final allBooks = snapshot.data ?? [];
+        final availableBooks = allBooks.where((b) => b.available).toList();
+        final soldBooks = allBooks.where((b) => !b.available).toList();
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('My Listings'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add_rounded),
+                tooltip: 'Add Book',
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.addBook);
+                },
+              ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: [
+                Tab(text: 'All (${allBooks.length})'),
+                Tab(text: 'Available (${availableBooks.length})'),
+                Tab(text: 'Sold (${soldBooks.length})'),
+              ],
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+              indicatorSize: TabBarIndicatorSize.label,
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildBookList(allBooks, theme, isDark),
+              _buildBookList(availableBooks, theme, isDark),
+              _buildBookList(soldBooks, theme, isDark),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.addBook);
             },
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add Book'),
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: Colors.white,
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: 'All (${_allListings.length})'),
-            Tab(text: 'Available (${_availableListings.length})'),
-            Tab(text: 'Sold (${_soldListings.length})'),
-          ],
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-          indicatorSize: TabBarIndicatorSize.label,
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBookList(_allListings, theme, isDark),
-          _buildBookList(_availableListings, theme, isDark),
-          _buildBookList(_soldListings, theme, isDark),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await Navigator.pushNamed(context, AppRoutes.addBook);
-          setState(() {});
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Book'),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-      ),
+        );
+      }
     );
   }
 
@@ -132,13 +152,12 @@ class _MyListingsScreenState extends State<MyListingsScreen>
         borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          onTap: () async {
-            await Navigator.pushNamed(
+          onTap: () {
+            Navigator.pushNamed(
               context,
               AppRoutes.bookDetails,
               arguments: book,
             );
-            setState(() {}); // Refresh in case book was deleted/edited
           },
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -248,13 +267,13 @@ class _MyListingsScreenState extends State<MyListingsScreen>
                       ),
                     ),
                     const PopupMenuDivider(),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
                           Icon(Icons.delete_outline_rounded,
                               size: 20, color: AppColors.error),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Text('Delete',
                               style:
                                   TextStyle(color: AppColors.error)),
@@ -274,51 +293,44 @@ class _MyListingsScreenState extends State<MyListingsScreen>
   void _handleAction(String action, Book book, ThemeData theme) async {
     switch (action) {
       case 'view':
-        await Navigator.pushNamed(
+        Navigator.pushNamed(
           context,
           AppRoutes.bookDetails,
           arguments: book,
         );
-        setState(() {});
         break;
 
       case 'edit':
-        await Navigator.pushNamed(
+        Navigator.pushNamed(
           context,
           AppRoutes.editBook,
           arguments: book,
         );
-        setState(() {});
         break;
 
       case 'toggle':
-        final index = dummyBooks.indexWhere((b) => b.id == book.id);
-        if (index != -1) {
-          dummyBooks[index] = Book(
-            id: book.id,
-            title: book.title,
-            author: book.author,
-            subject: book.subject,
-            category: book.category,
-            department: book.department,
-            imageUrl: book.imageUrl,
-            description: book.description,
-            sellerName: book.sellerName,
-            sellerId: book.sellerId,
-            available: !book.available,
-            price: book.price,
-          );
-          setState(() {});
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                book.available
-                    ? '"${book.title}" marked as Sold'
-                    : '"${book.title}" marked as Available',
+        try {
+          final updatedBook = book.copyWith(available: !book.available);
+          await DatabaseService.instance.updateBook(updatedBook);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  updatedBook.available
+                      ? '"${book.title}" marked as Available'
+                      : '"${book.title}" marked as Sold',
+                ),
+                behavior: SnackBarBehavior.floating,
               ),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to update: $e')),
+            );
+          }
         }
         break;
 
@@ -356,37 +368,31 @@ class _MyListingsScreenState extends State<MyListingsScreen>
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () {
-              final removedIndex =
-                  dummyBooks.indexWhere((b) => b.id == book.id);
-              if (removedIndex != -1) {
-                dummyBooks.removeAt(removedIndex);
-              }
-              if (FavoritesManager.instance.isFavorite(book)) {
-                FavoritesManager.instance.toggleFavorite(book);
-              }
+            onPressed: () async {
+              Navigator.pop(dialogContext); // close dialog first
+              
+              try {
+                await DatabaseService.instance.deleteBook(book.id);
+                
+                if (FavoritesManager.instance.isFavorite(book)) {
+                  FavoritesManager.instance.toggleFavorite(book);
+                }
 
-              Navigator.pop(dialogContext);
-              setState(() {});
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('"${book.title}" deleted'),
-                  behavior: SnackBarBehavior.floating,
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () {
-                      if (removedIndex != -1 &&
-                          removedIndex <= dummyBooks.length) {
-                        dummyBooks.insert(removedIndex, book);
-                      } else {
-                        dummyBooks.add(book);
-                      }
-                      setState(() {});
-                    },
-                  ),
-                ),
-              );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('"${book.title}" deleted'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete book: $e')),
+                  );
+                }
+              }
             },
             icon: const Icon(Icons.delete_rounded, size: 18),
             label: const Text('Delete'),
@@ -429,9 +435,8 @@ class _MyListingsScreenState extends State<MyListingsScreen>
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () async {
-                await Navigator.pushNamed(context, AppRoutes.addBook);
-                setState(() {});
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.addBook);
               },
               icon: const Icon(Icons.add_rounded, size: 20),
               label: const Text('Add Your First Book'),

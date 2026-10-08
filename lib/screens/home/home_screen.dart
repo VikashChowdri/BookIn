@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
+import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -17,18 +17,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'All';
 
-  List<String> get _categories {
-    final cats = dummyBooks.map((b) => b.category).toSet().toList()..sort();
+  List<String> _getCategories(List<Book> books) {
+    final cats = books.map((b) => b.category).toSet().toList()..sort();
     return ['All', ...cats];
   }
 
-  List<Book> get _filteredBooks {
-    if (_selectedCategory == 'All') return dummyBooks;
-    return dummyBooks.where((b) => b.category == _selectedCategory).toList();
+  List<Book> _getFilteredBooks(List<Book> books) {
+    if (_selectedCategory == 'All') return books;
+    return books.where((b) => b.category == _selectedCategory).toList();
   }
 
-  List<Book> get _featuredBooks =>
-      dummyBooks.where((b) => b.available).take(5).toList();
+  List<Book> _getFeaturedBooks(List<Book> books) =>
+      books.where((b) => b.available).take(5).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -62,73 +62,98 @@ class _HomeScreenState extends State<HomeScreen> {
           const AppOptionsMenu(),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            // ── Greeting Banner ──
-            _buildGreetingBanner(theme, isDark),
+      body: StreamBuilder<List<Book>>(
+        stream: DatabaseService.instance.getBooksStream(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          final allBooks = snapshot.data ?? [];
+          final categories = _getCategories(allBooks);
+          final featuredBooks = _getFeaturedBooks(allBooks);
+          final filteredBooks = _getFilteredBooks(allBooks);
 
-            const SizedBox(height: 20),
+          // Reset selection if category is no longer valid after data updates
+          if (!categories.contains(_selectedCategory)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _selectedCategory = 'All');
+            });
+          }
 
-            // ── Category Chips ──
-            _buildSectionTitle(theme, 'Browse Categories'),
-            const SizedBox(height: 8),
-            _buildCategoryChips(theme),
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {});
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                // ── Greeting Banner ──
+                _buildGreetingBanner(theme, isDark),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-            // ── Featured Books Carousel ──
-            _buildSectionTitle(
-              theme,
-              'Featured Books',
-              trailing: TextButton(
-                onPressed: () =>
-                    Navigator.pushNamed(context, AppRoutes.bookListing),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
+                // ── Category Chips ──
+                _buildSectionTitle(theme, 'Browse Categories'),
+                const SizedBox(height: 8),
+                _buildCategoryChips(theme, categories),
+
+                const SizedBox(height: 24),
+
+                // ── Featured Books Carousel ──
+                _buildSectionTitle(
+                  theme,
+                  'Featured Books',
+                  trailing: TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.bookListing),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('View All'),
+                  ),
                 ),
-                child: const Text('View All'),
-              ),
+                const SizedBox(height: 12),
+                _buildFeaturedCarousel(theme, isDark, featuredBooks),
+
+                const SizedBox(height: 24),
+
+                // ── All Books Listing ──
+                _buildSectionTitle(
+                  theme,
+                  _selectedCategory == 'All'
+                      ? 'All Books'
+                      : '$_selectedCategory Books',
+                  trailing: TextButton(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.bookListing,
+                      arguments: {
+                        'category': _selectedCategory == 'All'
+                            ? null
+                            : _selectedCategory,
+                      },
+                    ),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('View All'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildBookList(theme, isDark, filteredBooks),
+
+                const SizedBox(height: 80), // space for FAB
+              ],
             ),
-            const SizedBox(height: 12),
-            _buildFeaturedCarousel(theme, isDark),
-
-            const SizedBox(height: 24),
-
-            // ── All Books Listing ──
-            _buildSectionTitle(
-              theme,
-              _selectedCategory == 'All'
-                  ? 'All Books'
-                  : '$_selectedCategory Books',
-              trailing: TextButton(
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.bookListing,
-                  arguments: {
-                    'category': _selectedCategory == 'All'
-                        ? null
-                        : _selectedCategory,
-                  },
-                ),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Text('View All'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildBookList(theme, isDark),
-
-            const SizedBox(height: 80), // space for FAB
-          ],
-        ),
+          );
+        }
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
@@ -247,22 +272,26 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
-          ?trailing,
+          if (trailing != null) trailing,
         ],
       ),
     );
   }
 
-  Widget _buildCategoryChips(ThemeData theme) {
+  Widget _buildCategoryChips(ThemeData theme, List<String> categories) {
+    if (categories.isEmpty || (categories.length == 1 && categories.first == 'All')) {
+      return const SizedBox(height: 0);
+    }
+    
     return SizedBox(
       height: 42,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
+        itemCount: categories.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final cat = _categories[index];
+          final cat = categories[index];
           final selected = cat == _selectedCategory;
           return ChoiceChip(
             label: Text(cat),
@@ -285,8 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFeaturedCarousel(ThemeData theme, bool isDark) {
-    final books = _featuredBooks;
+  Widget _buildFeaturedCarousel(ThemeData theme, bool isDark, List<Book> books) {
     if (books.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: 16),
@@ -409,8 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBookList(ThemeData theme, bool isDark) {
-    final books = _filteredBooks;
+  Widget _buildBookList(ThemeData theme, bool isDark, List<Book> books) {
     if (books.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
