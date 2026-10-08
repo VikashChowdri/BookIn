@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 
 class AddEditBookScreen extends StatefulWidget {
@@ -89,50 +90,62 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
     super.dispose();
   }
 
-  void _saveBook() {
+  bool _isLoading = false;
+
+  Future<void> _saveBook() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    setState(() { _isLoading = true; });
 
-    final newBook = Book(
-      id: _isEditMode
-          ? widget.book!.id
-          : DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _titleController.text.trim(),
-      author: _authorController.text.trim(),
-      subject: _subjectController.text.trim(),
-      category: _selectedCategory ?? 'Other',
-      department: _selectedDepartment ?? 'Other',
-      imageUrl: _imageUrlController.text.trim().isNotEmpty
-          ? _imageUrlController.text.trim()
-          : AppConstants.defaultBookCover,
-      description: _descriptionController.text.trim(),
-      sellerName: 'You',
-      sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
-      available: _isAvailable,
-      price: double.tryParse(_priceController.text.trim()) ?? 0,
-    );
+    try {
+      final newBook = Book(
+        id: _isEditMode
+            ? widget.book!.id
+            : '', // Firestore will generate the ID
+        title: _titleController.text.trim(),
+        author: _authorController.text.trim(),
+        subject: _subjectController.text.trim(),
+        category: _selectedCategory ?? 'Other',
+        department: _selectedDepartment ?? 'Other',
+        imageUrl: _imageUrlController.text.trim().isNotEmpty
+            ? _imageUrlController.text.trim()
+            : AppConstants.defaultBookCover,
+        description: _descriptionController.text.trim(),
+        sellerName: AuthService.instance.currentUser?.displayName ?? 'User',
+        sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
+        available: _isAvailable,
+        price: double.tryParse(_priceController.text.trim()) ?? 0,
+      );
 
-    if (_isEditMode) {
-      // Replace in dummy data
-      final index =
-          dummyBooks.indexWhere((b) => b.id == widget.book!.id);
-      if (index != -1) {
-        dummyBooks[index] = newBook;
+      if (_isEditMode) {
+        await DatabaseService.instance.updateBook(newBook);
+      } else {
+        await DatabaseService.instance.addBook(newBook);
       }
-    } else {
-      dummyBooks.insert(0, newBook);
-    }
 
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isEditMode
-              ? '"${newBook.title}" updated successfully'
-              : '"${newBook.title}" added successfully',
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditMode
+                ? '"${newBook.title}" updated successfully'
+                : '"${newBook.title}" added successfully',
+          ),
+          behavior: SnackBarBehavior.floating,
         ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save book: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() { _isLoading = false; });
+    }
   }
 
   @override
