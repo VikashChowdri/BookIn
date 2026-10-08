@@ -1,0 +1,114 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/book.dart';
+import '../../core/constants/app_constants.dart';
+
+class DatabaseService {
+  DatabaseService._();
+  static final DatabaseService instance = DatabaseService._();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Collection References
+  CollectionReference get _booksRef =>
+      _firestore.collection(AppConstants.booksCollection);
+
+  // ---------------------------------------------------------------------------
+  // Books CRUD Operations
+  // ---------------------------------------------------------------------------
+
+  /// Add a new book to the database
+  Future<String> addBook(Book book) async {
+    try {
+      // If the book object doesn't have an ID, Firestore will auto-generate one
+      final docRef = _booksRef.doc();
+      final newBook = book.copyWith(id: docRef.id);
+      
+      await docRef.set(newBook.toMap());
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to add book: $e');
+    }
+  }
+
+  /// Update an existing book
+  Future<void> updateBook(Book book) async {
+    try {
+      await _booksRef.doc(book.id).update(book.toMap());
+    } catch (e) {
+      throw Exception('Failed to update book: $e');
+    }
+  }
+
+  /// Delete a book
+  Future<void> deleteBook(String bookId) async {
+    try {
+      await _booksRef.doc(bookId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete book: $e');
+    }
+  }
+
+  /// Get a single book by ID
+  Future<Book?> getBook(String bookId) async {
+    try {
+      final doc = await _booksRef.doc(bookId).get();
+      if (doc.exists && doc.data() != null) {
+        return Book.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch book: $e');
+    }
+  }
+
+  /// Get a stream of all books (optionally filtered by availability)
+  Stream<List<Book>> getBooksStream({bool onlyAvailable = false}) {
+    Query query = _booksRef;
+    
+    if (onlyAvailable) {
+      query = query.where('available', isEqualTo: true);
+    }
+    
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return Book.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+    });
+  }
+
+  /// Get a stream of books for a specific user (My Listings)
+  Stream<List<Book>> getUserBooksStream(String userId) {
+    return _booksRef
+        .where('sellerId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return Book.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+    });
+  }
+
+  /// Search books by title or author (basic implementation)
+  Future<List<Book>> searchBooks(String query) async {
+    try {
+      // Note: Firestore doesn't support full-text search out of the box. 
+      // This is a basic prefix match or fetching all and filtering in memory.
+      // For a real app, you might want to use Algolia, Typesense, or Firebase Extensions.
+      final snapshot = await _booksRef
+          .where('available', isEqualTo: true)
+          .get();
+          
+      final allBooks = snapshot.docs.map((doc) => 
+        Book.fromMap(doc.data() as Map<String, dynamic>, doc.id)
+      ).toList();
+
+      final lowercaseQuery = query.toLowerCase();
+      return allBooks.where((book) => 
+        book.title.toLowerCase().contains(lowercaseQuery) ||
+        book.author.toLowerCase().contains(lowercaseQuery)
+      ).toList();
+    } catch (e) {
+      throw Exception('Failed to search books: $e');
+    }
+  }
+}
