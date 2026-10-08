@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../data/services/auth_service.dart';
 import '../../routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,11 +16,21 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
-      }
-    });
+    _timer = Timer(const Duration(seconds: 2), _navigate);
+  }
+
+  void _navigate() {
+    if (!mounted) return;
+
+    final auth = AuthService.instance;
+
+    if (auth.isSignedIn) {
+      // User is logged in — go straight to home
+      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    } else {
+      // No session — show onboarding / login
+      Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
+    }
   }
 
   @override

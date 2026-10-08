@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/services/auth_service.dart';
 import '../../routes/app_routes.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -7,6 +8,10 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final user = AuthService.instance.currentUser;
+
+    final displayName = user?.displayName ?? 'BookIn User';
+    final email = user?.email ?? 'No email';
 
     return Scaffold(
       appBar: AppBar(
@@ -24,25 +29,43 @@ class ProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 50,
-              backgroundColor: Colors.indigo,
-              child: Icon(Icons.person, size: 55, color: Colors.white),
+              backgroundColor: theme.colorScheme.primary,
+              child: Text(
+                displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
-              'Alex Morgan',
+              displayName,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'alex.morgan@example.com',
+              email,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            if (user != null && !user.emailVerified) ...[
+              const SizedBox(height: 8),
+              Chip(
+                avatar: Icon(Icons.warning_amber_rounded, size: 16, color: theme.colorScheme.error),
+                label: Text(
+                  'Email not verified',
+                  style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                ),
+                backgroundColor: theme.colorScheme.error.withValues(alpha: 0.1),
+                side: BorderSide.none,
+              ),
+            ],
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -77,18 +100,43 @@ class ProfileScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),
               title: const Text('Log Out', style: TextStyle(color: Colors.redAccent)),
-              onTap: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRoutes.login,
-                  (route) => false,
-                );
-              },
+              onTap: () => _handleSignOut(context),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _handleSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log Out', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await AuthService.instance.signOut();
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
+      }
+    }
   }
 
   Widget _buildStatColumn(String count, String label, ThemeData theme) {
