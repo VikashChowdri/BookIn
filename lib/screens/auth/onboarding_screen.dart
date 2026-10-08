@@ -97,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
 
                 itemBuilder: (context, index) {
-                  return Padding(
+                  return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 30,
                     ),
@@ -105,10 +105,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
 
+                        const SizedBox(height: 20),
+
                         // Illustration
                         Container(
-                          height: 220,
-                          width: 220,
+                          height: 200,
+                          width: 200,
                           decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .colorScheme
@@ -119,14 +121,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             getIcon(
                               onboardingData[index]['icon']!,
                             ),
-                            size: 100,
+                            size: 90,
                             color: Theme.of(context)
                                 .colorScheme
                                 .primary,
                           ),
                         ),
 
-                        const SizedBox(height: 50),
+                        const SizedBox(height: 30),
 
                         // Title
                         Text(
@@ -140,7 +142,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
                         // Description
                         Text(
@@ -153,6 +155,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 height: 1.5,
                               ),
                         ),
+
+                        const SizedBox(height: 20),
                       ],
                     ),
                   );
