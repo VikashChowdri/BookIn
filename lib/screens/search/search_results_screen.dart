@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
+import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -68,18 +69,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   bool _loading = true;
   late _Filters _f;
   late final TextEditingController _box;
- 
-  List<String> get _categories =>
-      dummyBooks.map((b) => b.category).toSet().toList();
-  List<String> get _departments =>
-      dummyBooks.map((b) => b.department).toSet().toList();
- 
-  /// Highest price rounded up to the next 50, used for the price slider.
-  double get _maxPrice {
-    final top = dummyBooks.fold<double>(0, (m, b) => b.price > m ? b.price : m);
-    final rounded = ((top / 50).ceil() * 50).toDouble();
-    return rounded < 50 ? 50 : rounded;
-  }
+  
+  List<Book> _allBooks = [];
+  List<String> _cachedCategories = [];
+  List<String> _cachedDepartments = [];
+  double _cachedMaxPrice = 50.0;
+  StreamSubscription<List<Book>>? _booksSub;
  
   @override
   void initState() {
@@ -99,15 +94,29 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     _load();
   }
  
-  Future<void> _load() async {
-    // Simulated loading — swap for a real Firestore query later.
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    setState(() => _loading = false);
+  void _load() {
+    _booksSub = DatabaseService.instance.getBooksStream().listen((books) {
+      if (mounted) {
+        setState(() {
+          _allBooks = books;
+          
+          // Cache derived data
+          _cachedCategories = _allBooks.map((b) => b.category).toSet().toList();
+          _cachedDepartments = _allBooks.map((b) => b.department).toSet().toList();
+          
+          final top = _allBooks.fold<double>(0, (m, b) => b.price > m ? b.price : m);
+          final rounded = ((top / 50).ceil() * 50).toDouble();
+          _cachedMaxPrice = rounded < 50 ? 50 : rounded;
+
+          _loading = false;
+        });
+      }
+    });
   }
  
   @override
   void dispose() {
+    _booksSub?.cancel();
     _box.dispose();
     super.dispose();
   }
@@ -115,7 +124,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   // ───────── filter + sort ─────────
   List<Book> _compute() {
     final q = widget.query.toLowerCase();
-    final list = dummyBooks.where((b) {
+    final list = _allBooks.where((b) {
       final okQuery = q.isEmpty ||
           b.title.toLowerCase().contains(q) ||
           b.author.toLowerCase().contains(q) ||
@@ -155,9 +164,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       ),
       builder: (_) => _FilterSheet(
         initial: _f,
-        categories: _categories,
-        departments: _departments,
-        maxPrice: _maxPrice,
+        categories: _cachedCategories,
+        departments: _cachedDepartments,
+        maxPrice: _cachedMaxPrice,
       ),
     );
     if (result != null) setState(() => _f = result);

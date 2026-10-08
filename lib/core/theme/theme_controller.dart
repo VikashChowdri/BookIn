@@ -6,7 +6,7 @@ class ThemeController {
 
   /// Global ValueNotifier holding the current active ThemeMode.
   static final ValueNotifier<ThemeMode> themeModeNotifier =
-      ValueNotifier<ThemeMode>(ThemeMode.system);
+      ValueNotifier<ThemeMode>(ThemeMode.light);
 
   /// Get current theme mode
   static ThemeMode get currentThemeMode => themeModeNotifier.value;

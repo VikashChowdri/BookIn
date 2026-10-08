@@ -5,6 +5,7 @@ import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
+import '../../utils/app_notification.dart';
 import '../../widgets/options_menu.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -36,32 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.menu_book_rounded,
-                color: theme.colorScheme.primary, size: 26),
-            const SizedBox(width: 8),
-            Text(
-              AppConstants.appName,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_rounded),
-            tooltip: 'Search',
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.search),
-          ),
-          const AppOptionsMenu(),
-        ],
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: StreamBuilder<List<Book>>(
         stream: DatabaseService.instance.getBooksStream(),
         builder: (context, snapshot) {
@@ -89,67 +65,56 @@ class _HomeScreenState extends State<HomeScreen> {
             onRefresh: () async {
               setState(() {});
             },
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                // ── Greeting Banner ──
-                _buildGreetingBanner(theme, isDark),
-
-                const SizedBox(height: 20),
-
-                // ── Category Chips ──
-                _buildSectionTitle(theme, 'Browse Categories'),
-                const SizedBox(height: 8),
-                _buildCategoryChips(theme, categories),
-
-                const SizedBox(height: 24),
-
-                // ── Featured Books Carousel ──
-                _buildSectionTitle(
-                  theme,
-                  'Featured Books',
-                  trailing: TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, AppRoutes.bookListing),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text('View All'),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: [
+                _buildSliverAppBar(theme, isDark),
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildGreetingBanner(theme, isDark),
+                      const SizedBox(height: 28),
+                      _buildSectionHeader(theme, 'Browse Categories'),
+                      const SizedBox(height: 16),
+                      _buildCategoryChips(theme, categories, isDark),
+                      const SizedBox(height: 36),
+                      _buildSectionHeader(
+                        theme, 
+                        'Featured Books',
+                        actionText: 'View All',
+                        onAction: () => Navigator.pushNamed(context, AppRoutes.bookListing),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFeaturedCarousel(theme, isDark, featuredBooks),
+                      const SizedBox(height: 36),
+                      _buildSectionHeader(
+                        theme,
+                        _selectedCategory == 'All'
+                            ? 'All Books'
+                            : '$_selectedCategory Books',
+                        actionText: 'View All',
+                        onAction: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.bookListing,
+                          arguments: {
+                            'category': _selectedCategory == 'All'
+                                ? null
+                                : _selectedCategory,
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                _buildFeaturedCarousel(theme, isDark, featuredBooks),
-
-                const SizedBox(height: 24),
-
-                // ── All Books Listing ──
-                _buildSectionTitle(
-                  theme,
-                  _selectedCategory == 'All'
-                      ? 'All Books'
-                      : '$_selectedCategory Books',
-                  trailing: TextButton(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.bookListing,
-                      arguments: {
-                        'category': _selectedCategory == 'All'
-                            ? null
-                            : _selectedCategory,
-                      },
-                    ),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text('View All'),
-                  ),
+                _buildBookGrid(theme, isDark, filteredBooks),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100), // Space for FAB
                 ),
-                const SizedBox(height: 8),
-                _buildBookList(theme, isDark, filteredBooks),
-
-                const SizedBox(height: 80), // space for FAB
               ],
             ),
           );
@@ -157,156 +122,254 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
+        elevation: 4,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Book'),
+        label: const Text('Add Book', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
       ),
     );
   }
 
-  Widget _buildGreetingBanner(ThemeData theme, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.primaryDark, const Color(0xFF1E1B4B)]
-              : [AppColors.primary, AppColors.primaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSliverAppBar(ThemeData theme, bool isDark) {
+    return SliverAppBar(
+      expandedHeight: 60.0,
+      floating: true,
+      pinned: true,
+      elevation: 0,
+      scrolledUnderElevation: 4,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Hello, Student! 👋',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(Icons.auto_stories_rounded,
+                color: theme.colorScheme.primary, size: 24),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(width: 12),
           Text(
-            AppConstants.appTagline,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.85),
+            AppConstants.appName,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+              letterSpacing: -0.5,
+              color: theme.colorScheme.onSurface,
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _bannerActionButton(
-                icon: Icons.add_circle_outline_rounded,
-                label: 'Add Book',
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.addBook),
-              ),
-              const SizedBox(width: 12),
-              _bannerActionButton(
-                icon: Icons.list_alt_rounded,
-                label: 'My Listings',
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.myListings),
-              ),
-            ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _bannerActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.2),
-      borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+      actions: [
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.notifications_rounded, size: 20),
+            tooltip: 'Simulate Review Notification',
+            onPressed: () {
+              AppNotification.showReviewNotification(context);
+            },
           ),
         ),
-      ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.search_rounded, size: 20),
+            tooltip: 'Search',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.search),
+          ),
+        ),
+        const AppOptionsMenu(),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
-  Widget _buildSectionTitle(ThemeData theme, String title,
-      {Widget? trailing}) {
+  Widget _buildSectionHeader(ThemeData theme, String title, {String? actionText, VoidCallback? onAction}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
             ),
           ),
-          if (trailing != null) trailing,
+          if (actionText != null && onAction != null)
+            TextButton(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                actionText,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryChips(ThemeData theme, List<String> categories) {
+  Widget _buildGreetingBanner(ThemeData theme, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [AppColors.primaryDark, const Color(0xFF1E1B4B)]
+              : [AppColors.primary, const Color(0xFF6366F1)], // Indigo to lighter indigo
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(
+              Icons.menu_book_rounded,
+              size: 120,
+              color: Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ready to find your next great read?',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Welcome, Student! 👋',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
+                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                      label: const Text('List a Book'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.myListings),
+                      icon: const Icon(Icons.list_alt_rounded, size: 20),
+                      label: const Text('My Listings'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips(ThemeData theme, List<String> categories, bool isDark) {
     if (categories.isEmpty || (categories.length == 1 && categories.first == 'All')) {
       return const SizedBox(height: 0);
     }
     
     return SizedBox(
-      height: 42,
+      height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final cat = categories[index];
           final selected = cat == _selectedCategory;
-          return ChoiceChip(
-            label: Text(cat),
-            selected: selected,
-            onSelected: (_) => setState(() => _selectedCategory = cat),
-            selectedColor: theme.colorScheme.primary,
-            labelStyle: TextStyle(
-              color: selected ? Colors.white : theme.colorScheme.onSurface,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              fontSize: 13,
-            ),
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-            side: BorderSide.none,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppConstants.radiusCircular),
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            child: ChoiceChip(
+              label: Text(cat),
+              selected: selected,
+              onSelected: (_) => setState(() => _selectedCategory = cat),
+              selectedColor: theme.colorScheme.primary,
+              labelStyle: TextStyle(
+                color: selected ? Colors.white : theme.colorScheme.onSurface,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 14,
+              ),
+              backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightBackground,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: selected 
+                      ? Colors.transparent 
+                      : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+              ),
+              showCheckmark: false,
+              elevation: selected ? 4 : 0,
+              shadowColor: theme.colorScheme.primary.withValues(alpha: 0.4),
             ),
           );
         },
@@ -317,81 +380,293 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFeaturedCarousel(ThemeData theme, bool isDark, List<Book> books) {
     if (books.isEmpty) {
       return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: 20),
         child: Text('No featured books available.'),
       );
     }
 
     return SizedBox(
-      height: 220,
+      height: 280,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        physics: const BouncingScrollPhysics(),
         itemCount: books.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        separatorBuilder: (_, _) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final book = books[index];
-          return _buildFeaturedCard(book, theme, isDark);
+          return _buildPremiumFeaturedCard(book, theme, isDark);
         },
       ),
     );
   }
 
-  Widget _buildFeaturedCard(Book book, ThemeData theme, bool isDark) {
+  Widget _buildPremiumFeaturedCard(Book book, ThemeData theme, bool isDark) {
     return GestureDetector(
       onTap: () {
         FavoritesManager.instance.addRecentlyViewed(book);
         Navigator.pushNamed(context, AppRoutes.bookDetails, arguments: book);
       },
       child: Container(
-        width: 155,
+        width: 180,
         decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Image
+              Image.network(
+                book.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
+                  child: Center(
+                    child: Icon(
+                      Icons.menu_book_rounded,
+                      size: 50,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ),
+              // Gradient Overlay
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.black.withValues(alpha: 0.8),
+                    ],
+                    stops: const [0.4, 0.7, 1.0],
+                  ),
+                ),
+              ),
+              // Content
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        book.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        book.author,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          if (!book.available)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'SOLD',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookGrid(ThemeData theme, bool isDark, List<Book> books) {
+    if (books.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.auto_stories_outlined,
+                    size: 64,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                const SizedBox(height: 16),
+                Text(
+                  'No books found',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try a different category',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.65,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final book = books[index];
+            return _buildGridBookCard(book, theme, isDark);
+          },
+          childCount: books.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridBookCard(Book book, ThemeData theme, bool isDark) {
+    final isFav = FavoritesManager.instance.isFavorite(book);
+
+    return GestureDetector(
+      onTap: () {
+        FavoritesManager.instance.addRecentlyViewed(book);
+        Navigator.pushNamed(context, AppRoutes.bookDetails, arguments: book);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
           ),
           boxShadow: [
             if (!isDark)
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Book cover image
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppConstants.radiusMedium),
-              ),
-              child: Container(
-                height: 120,
-                width: double.infinity,
-                color: isDark
-                    ? AppColors.darkBackground
-                    : AppColors.shimmerBase,
-                child: Image.network(
-                  book.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Center(
-                    child: Icon(
-                      Icons.menu_book_rounded,
-                      size: 40,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+            // Thumbnail with Favorite Button overlay
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                    child: Container(
+                      color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                      child: Image.network(
+                        book.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(
+                          child: Icon(Icons.menu_book,
+                              size: 40,
+                              color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          FavoritesManager.instance.toggleFavorite(book);
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isFav ? AppColors.error : theme.colorScheme.onSurfaceVariant,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            // Info
+            // Details
             Expanded(
+              flex: 2,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -399,18 +674,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       book.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       book.author,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
                       ),
                     ),
                     const Spacer(),
@@ -419,12 +695,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w700,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
                             color: theme.colorScheme.primary,
                           ),
                         ),
-                        _availabilityChip(book.available, small: true),
+                        if (!book.available)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Sold',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -432,194 +723,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBookList(ThemeData theme, bool isDark, List<Book> books) {
-    if (books.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.auto_stories_outlined,
-                  size: 48,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-              const SizedBox(height: 12),
-              Text(
-                'No books in this category yet',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: books.length,
-      itemBuilder: (context, index) {
-        final book = books[index];
-        return _buildBookListTile(book, theme, isDark);
-      },
-    );
-  }
-
-  Widget _buildBookListTile(Book book, ThemeData theme, bool isDark) {
-    final isFav = FavoritesManager.instance.isFavorite(book);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-        boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          onTap: () {
-            FavoritesManager.instance.addRecentlyViewed(book);
-            Navigator.pushNamed(context, AppRoutes.bookDetails,
-                arguments: book);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Thumbnail
-                ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(AppConstants.radiusSmall),
-                  child: Container(
-                    width: 64,
-                    height: 80,
-                    color: isDark
-                        ? AppColors.darkBackground
-                        : AppColors.shimmerBase,
-                    child: Image.network(
-                      book.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Center(
-                        child: Icon(Icons.menu_book,
-                            color: theme.colorScheme.primary
-                                .withValues(alpha: 0.4)),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 14),
-
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        book.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${book.author} · ${book.subject}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          _availabilityChip(book.available),
-                          const Spacer(),
-                          Text(
-                            book.sellerName,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // Favorite button
-                IconButton(
-                  icon: Icon(
-                    isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: isFav ? AppColors.error : theme.colorScheme.onSurfaceVariant,
-                    size: 22,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      FavoritesManager.instance.toggleFavorite(book);
-                    });
-                  },
-                  visualDensity: VisualDensity.compact,
-                  tooltip: isFav ? 'Remove from favorites' : 'Add to favorites',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  Widget _availabilityChip(bool available, {bool small = false}) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: small ? 6 : 8,
-        vertical: small ? 2 : 3,
-      ),
-      decoration: BoxDecoration(
-        color: available
-            ? AppColors.success.withValues(alpha: 0.15)
-            : AppColors.error.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppConstants.radiusCircular),
-      ),
-      child: Text(
-        available ? 'Available' : 'Sold',
-        style: TextStyle(
-          fontSize: small ? 9 : 11,
-          fontWeight: FontWeight.w600,
-          color: available ? AppColors.success : AppColors.error,
         ),
       ),
     );
