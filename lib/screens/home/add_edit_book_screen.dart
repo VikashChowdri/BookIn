@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
+import '../../data/services/auth_service.dart';
 import '../../models/book.dart';
 
 class AddEditBookScreen extends StatefulWidget {
@@ -105,6 +106,7 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
           : AppConstants.defaultBookCover,
       description: _descriptionController.text.trim(),
       sellerName: 'You',
+      sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
       available: _isAvailable,
       price: double.tryParse(_priceController.text.trim()) ?? 0,
     );

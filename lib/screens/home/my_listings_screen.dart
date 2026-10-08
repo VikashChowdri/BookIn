@@ -304,6 +304,7 @@ class _MyListingsScreenState extends State<MyListingsScreen>
             imageUrl: book.imageUrl,
             description: book.description,
             sellerName: book.sellerName,
+            sellerId: book.sellerId,
             available: !book.available,
             price: book.price,
           );
