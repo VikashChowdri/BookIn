@@ -14,7 +14,7 @@ class BookingConfirmationScreen extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Booking Confirmed'),
+        title: const Text('Request Sent'),
         automaticallyImplyLeading: false, // Force them to use the 'Done' button
       ),
       body: Center(
@@ -25,20 +25,20 @@ class BookingConfirmationScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Icon(
-                Icons.check_circle_outline,
-                color: Colors.green,
+                Icons.schedule_send_outlined,
+                color: Colors.blue,
                 size: 100,
               ),
               const SizedBox(height: 24),
               Text(
-                'Success!',
+                'Request Sent!',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Your booking for "${booking.bookTitle}" has been confirmed.',
+                'Your booking request for "${booking.bookTitle}" has been sent. Waiting for seller approval.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -56,7 +56,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                   children: [
                     _buildRow('Booking ID', booking.id.isNotEmpty ? booking.id : 'Pending...', theme),
                     const Divider(height: 24),
-                    _buildRow('Total Paid', '${AppConstants.defaultCurrencySymbol}${booking.totalPrice.toStringAsFixed(2)}', theme),
+                    _buildRow('Total Cost', '${AppConstants.defaultCurrencySymbol}${booking.totalPrice.toStringAsFixed(2)}', theme),
                     const Divider(height: 24),
                     _buildRow('Start Date', '${booking.startDate.day}/${booking.startDate.month}/${booking.startDate.year}', theme),
                     const Divider(height: 24),

@@ -196,6 +196,20 @@ class DatabaseService {
     });
   }
 
+  Stream<List<Booking>> getIncomingRequestsStream(String sellerId) {
+    return _bookingsRef
+        .where('sellerId', isEqualTo: sellerId)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) {
+        return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
   Future<void> cancelBooking(String bookingId, String bookId) async {
     try {
       await _bookingsRef.doc(bookingId).update({'status': 'cancelled'});
@@ -232,6 +246,23 @@ class DatabaseService {
 
   Future<void> respondToBookingRequest(String notificationId, String bookingId, String bookId, String buyerId, String bookTitle, bool accept) async {
     try {
+      // 1. Mark the seller's notification as read or update its type
+      if (notificationId.isNotEmpty) {
+        await _notificationsRef.doc(notificationId).update({
+          'isRead': true,
+          'type': accept ? 'booking_request_accepted' : 'booking_request_rejected',
+        });
+      }
+
+      // 2. Perform the actual response logic
+      await processBookingResponse(bookingId, bookId, buyerId, bookTitle, accept);
+    } catch (e) {
+      throw Exception('Failed to respond to booking request: $e');
+    }
+  }
+
+  Future<void> processBookingResponse(String bookingId, String bookId, String buyerId, String bookTitle, bool accept) async {
+    try {
       // 1. Update booking status
       final newStatus = accept ? 'accepted' : 'rejected';
       await _bookingsRef.doc(bookingId).update({'status': newStatus});
@@ -241,13 +272,7 @@ class DatabaseService {
         await updateBookAvailability(bookId, true);
       }
 
-      // 3. Mark the seller's notification as read or update its type
-      await _notificationsRef.doc(notificationId).update({
-        'isRead': true,
-        'type': accept ? 'booking_request_accepted' : 'booking_request_rejected',
-      });
-
-      // 4. Send a notification to the buyer
+      // 3. Send a notification to the buyer
       final notifRef = _notificationsRef.doc();
       final notif = NotificationItem(
         id: notifRef.id,
@@ -261,7 +286,7 @@ class DatabaseService {
       );
       await notifRef.set(notif.toMap());
     } catch (e) {
-      throw Exception('Failed to respond to booking: $e');
+      throw Exception('Failed to process booking response: $e');
     }
   }
 }

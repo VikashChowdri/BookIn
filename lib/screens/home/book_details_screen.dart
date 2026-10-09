@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../booking/booking_dialog.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/database_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
@@ -676,40 +677,35 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () {
-              // Actually remove from dummyBooks
-              final removedIndex =
-                  dummyBooks.indexWhere((b) => b.id == book.id);
-              if (removedIndex != -1) {
-                dummyBooks.removeAt(removedIndex);
-              }
+            onPressed: () async {
+              try {
+                await DatabaseService.instance.deleteBook(book.id);
 
-              // Remove from favorites if present
-              if (FavoritesManager.instance.isFavorite(book)) {
-                FavoritesManager.instance.toggleFavorite(book);
-              }
+                // Remove from favorites if present
+                if (FavoritesManager.instance.isFavorite(book)) {
+                  FavoritesManager.instance.toggleFavorite(book);
+                }
 
-              Navigator.pop(dialogContext); // close dialog
-              Navigator.pop(context); // go back to previous screen
+                if (!mounted) return;
+                Navigator.pop(dialogContext); // close dialog
+                Navigator.pop(context); // go back to previous screen
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('"${book.title}" has been deleted'),
-                  behavior: SnackBarBehavior.floating,
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () {
-                      // Re-insert at the same position
-                      if (removedIndex != -1 &&
-                          removedIndex <= dummyBooks.length) {
-                        dummyBooks.insert(removedIndex, book);
-                      } else {
-                        dummyBooks.add(book);
-                      }
-                    },
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"${book.title}" has been deleted'),
+                    behavior: SnackBarBehavior.floating,
                   ),
-                ),
-              );
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete book: $e'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             icon: const Icon(Icons.delete_rounded, size: 18),
             label: const Text('Delete'),

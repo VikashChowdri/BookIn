@@ -42,11 +42,7 @@ class _BookingDialogState extends State<BookingDialog> {
   }
 
   double get _totalPrice {
-    if (_startDate == null || _endDate == null) return widget.book.price;
-    final days = _endDate!.difference(_startDate!).inDays;
-    // Base price + (price * days) or simple rental logic: (days == 0 ? 1 : days) * widget.book.price
-    final rentalDays = days == 0 ? 1 : days;
-    return rentalDays * widget.book.price;
+    return widget.book.price; // Fixed price for purchasing/booking
   }
 
   void _confirmBooking() async {
@@ -85,8 +81,8 @@ class _BookingDialogState extends State<BookingDialog> {
       // Show notification banner
       scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(
-          content: Text('Booking Confirmed for ${widget.book.title}!'),
-          backgroundColor: Colors.green,
+          content: Text('Booking Request Sent for ${widget.book.title}!'),
+          backgroundColor: Colors.blue,
           behavior: SnackBarBehavior.floating,
         ),
       );

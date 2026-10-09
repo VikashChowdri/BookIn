@@ -140,7 +140,9 @@ class _BookingCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isCancelled ? Colors.red.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                      color: booking.status == 'pending' 
+                          ? Colors.orange.withValues(alpha: 0.1)
+                          : (booking.status == 'accepted' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -148,7 +150,9 @@ class _BookingCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isCancelled ? Colors.red : Colors.green,
+                        color: booking.status == 'pending' 
+                            ? Colors.orange
+                            : (booking.status == 'accepted' ? Colors.green : Colors.red),
                       ),
                     ),
                   ),

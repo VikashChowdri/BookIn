@@ -3,7 +3,7 @@ import '../core/constants/app_constants.dart';
 import '../core/theme/theme_controller.dart';
 import '../routes/app_routes.dart';
 
-enum MenuOption { theme, favorites, myBookings, profile, about }
+enum MenuOption { theme, favorites, myBookings, incomingRequests, profile, about }
 
 /// A reusable options menu button to be placed in the AppBar.
 class AppOptionsMenu extends StatelessWidget {
@@ -24,6 +24,9 @@ class AppOptionsMenu extends StatelessWidget {
             break;
           case MenuOption.myBookings:
             Navigator.pushNamed(context, AppRoutes.myBookings);
+            break;
+          case MenuOption.incomingRequests:
+            Navigator.pushNamed(context, AppRoutes.incomingRequests);
             break;
           case MenuOption.profile:
             Navigator.pushNamed(context, AppRoutes.profile);
@@ -61,6 +64,16 @@ class AppOptionsMenu extends StatelessWidget {
               Icon(Icons.shopping_bag_outlined, size: 20),
               SizedBox(width: 12),
               Text('My Bookings'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: MenuOption.incomingRequests,
+          child: Row(
+            children: [
+              Icon(Icons.inbox_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('Incoming Requests'),
             ],
           ),
         ),
