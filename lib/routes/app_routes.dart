@@ -17,6 +17,11 @@ import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/search/search_results_screen.dart';
 import '../screens/search/search_screen.dart';
+import '../screens/booking/my_bookings_screen.dart';
+import '../screens/booking/booking_confirmation_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
+import '../screens/booking/incoming_requests_screen.dart';
+import '../models/booking.dart';
 
 class AppRoutes {
   // Common / Splash
@@ -38,6 +43,10 @@ class AppRoutes {
   static const String addBook = '/add-book';
   static const String editBook = '/edit-book';
   static const String myListings = '/my-listings';
+  static const String myBookings = '/my-bookings';
+  static const String incomingRequests = '/incoming-requests';
+  static const String bookingConfirmation = '/booking-confirmation';
+  static const String notifications = '/notifications';
 
   // Member 3 - Search & Discovery
   static const String search = '/search';
@@ -60,6 +69,9 @@ class AppRoutes {
         home: (context) => const HomeScreen(),
         addBook: (context) => const AddEditBookScreen(),
         myListings: (context) => const MyListingsScreen(),
+        myBookings: (context) => const MyBookingsScreen(),
+        incomingRequests: (context) => const IncomingRequestsScreen(),
+        notifications: (context) => const NotificationsScreen(),
 
         // Member 3: Search & Discovery — Real Screens
         search: (context) => const SearchScreen(),
@@ -74,6 +86,17 @@ class AppRoutes {
         builder: (_) => AddEditBookScreen(book: book),
         settings: settings,
       );
+    }
+
+    // Booking Confirmation — requires Booking argument
+    if (settings.name == bookingConfirmation) {
+      final booking = settings.arguments as Booking?;
+      if (booking != null) {
+        return MaterialPageRoute(
+          builder: (_) => BookingConfirmationScreen(booking: booking),
+          settings: settings,
+        );
+      }
     }
 
     // Book Listing — optional category argument
