@@ -111,17 +111,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 setState(() {
                   FavoritesManager.instance.toggleFavorite(book);
                 });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _isFavorite
-                          ? 'Added to favorites'
-                          : 'Removed from favorites',
-                    ),
-                    duration: const Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
               },
             ),
           ),

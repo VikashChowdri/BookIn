@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
+import 'core/utils/globals.dart';
 import 'firebase_options.dart';
 import 'routes/app_routes.dart';
 
@@ -28,6 +29,7 @@ class BookExchangeApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: currentThemeMode,
+          scaffoldMessengerKey: scaffoldMessengerKey,
           initialRoute: AppRoutes.splash,
           onGenerateRoute: AppRoutes.onGenerateRoute,
         );
