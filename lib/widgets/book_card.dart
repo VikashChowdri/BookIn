@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/book.dart';
@@ -68,10 +69,13 @@ class BookCard extends StatelessWidget {
                     color: isDark
                         ? AppColors.darkBackground
                         : AppColors.shimmerBase,
-                    child: Image.network(
-                      book.imageUrl,
+                    child: CachedNetworkImage(
+                      imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Center(
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      errorWidget: (context, url, error) => Center(
                         child: Icon(Icons.menu_book,
                             color: theme.colorScheme.primary
                                 .withValues(alpha: 0.4)),
@@ -240,10 +244,13 @@ class BookCard extends StatelessWidget {
                       color: isDark
                           ? AppColors.darkBackground
                           : AppColors.shimmerBase,
-                      child: Image.network(
-                        book.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Center(
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => Center(
                           child: Icon(
                             Icons.menu_book_rounded,
                             size: 40,

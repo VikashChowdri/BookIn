@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../booking/booking_dialog.dart';
+import '../../data/services/auth_service.dart';
+import '../../data/services/database_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
@@ -24,6 +28,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isOwner = book.sellerId == AuthService.instance.currentUser?.uid;
 
     return Scaffold(
       body: CustomScrollView(
@@ -61,10 +66,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   // Seller Info
                   _buildSellerSection(theme, isDark),
 
-                  const SizedBox(height: 24),
-
-                  // Action Buttons
-                  _buildActionButtons(theme),
+                  if (isOwner) ...[
+                    const SizedBox(height: 24),
+                    // Action Buttons
+                    _buildActionButtons(theme),
+                  ],
                 ],
               ),
             ),
@@ -73,7 +79,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       ),
 
       // ── Bottom Action Bar ──
-      bottomNavigationBar: _buildBottomBar(theme, isDark),
+      bottomNavigationBar: isOwner ? null : _buildBottomBar(theme, isDark),
     );
   }
 
@@ -111,17 +117,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 setState(() {
                   FavoritesManager.instance.toggleFavorite(book);
                 });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _isFavorite
-                          ? 'Added to favorites'
-                          : 'Removed from favorites',
-                    ),
-                    duration: const Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
               },
             ),
           ),
@@ -150,10 +145,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           fit: StackFit.expand,
           children: [
             // Book cover image
-            Image.network(
-              book.imageUrl,
+            CachedNetworkImage(
+              imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+              placeholder: (context, url) => Container(
+                color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
                 color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
                 child: Center(
                   child: Icon(
@@ -570,13 +571,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             child: ElevatedButton.icon(
               onPressed: book.available
                   ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Exchange / Buy feature coming soon!'),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => BookingDialog(book: book),
                       );
                     }
                   : null,
@@ -680,40 +677,35 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: () {
-              // Actually remove from dummyBooks
-              final removedIndex =
-                  dummyBooks.indexWhere((b) => b.id == book.id);
-              if (removedIndex != -1) {
-                dummyBooks.removeAt(removedIndex);
-              }
+            onPressed: () async {
+              try {
+                await DatabaseService.instance.deleteBook(book.id);
 
-              // Remove from favorites if present
-              if (FavoritesManager.instance.isFavorite(book)) {
-                FavoritesManager.instance.toggleFavorite(book);
-              }
+                // Remove from favorites if present
+                if (FavoritesManager.instance.isFavorite(book)) {
+                  FavoritesManager.instance.toggleFavorite(book);
+                }
 
-              Navigator.pop(dialogContext); // close dialog
-              Navigator.pop(context); // go back to previous screen
+                if (!mounted) return;
+                Navigator.pop(dialogContext); // close dialog
+                Navigator.pop(context); // go back to previous screen
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('"${book.title}" has been deleted'),
-                  behavior: SnackBarBehavior.floating,
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () {
-                      // Re-insert at the same position
-                      if (removedIndex != -1 &&
-                          removedIndex <= dummyBooks.length) {
-                        dummyBooks.insert(removedIndex, book);
-                      } else {
-                        dummyBooks.add(book);
-                      }
-                    },
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"${book.title}" has been deleted'),
+                    behavior: SnackBarBehavior.floating,
                   ),
-                ),
-              );
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete book: $e'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             icon: const Icon(Icons.delete_rounded, size: 18),
             label: const Text('Delete'),

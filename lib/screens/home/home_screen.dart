@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/database_service.dart';
@@ -7,6 +8,8 @@ import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
 import '../../utils/app_notification.dart';
 import '../../widgets/options_menu.dart';
+import '../../models/notification_item.dart';
+import '../../data/services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -174,10 +177,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: IconButton(
-            icon: const Icon(Icons.notifications_rounded, size: 20),
-            tooltip: 'Simulate Review Notification',
+            icon: StreamBuilder<List<NotificationItem>>(
+              stream: DatabaseService.instance.getUserNotificationsStream(AuthService.instance.currentUser?.uid ?? ''),
+              builder: (context, snapshot) {
+                final hasUnread = snapshot.hasData && snapshot.data!.any((n) => !n.isRead);
+                return Stack(
+                  children: [
+                    const Icon(Icons.notifications_rounded, size: 20),
+                    if (hasUnread)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            tooltip: 'Notifications',
             onPressed: () {
-              AppNotification.showReviewNotification(context);
+              Navigator.pushNamed(context, AppRoutes.notifications);
             },
           ),
         ),
@@ -425,10 +450,16 @@ class _HomeScreenState extends State<HomeScreen> {
             fit: StackFit.expand,
             children: [
               // Image
-              Image.network(
-                book.imageUrl,
+              CachedNetworkImage(
+                imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
+                placeholder: (context, url) => Container(
+                  color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
                   color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
                   child: Center(
                     child: Icon(
@@ -625,10 +656,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                     child: Container(
                       color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-                      child: Image.network(
-                        book.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Center(
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => Center(
                           child: Icon(Icons.menu_book,
                               size: 40,
                               color: theme.colorScheme.primary.withValues(alpha: 0.3)),
