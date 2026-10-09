@@ -73,7 +73,7 @@ class _BookingDialogState extends State<BookingDialog> {
         startDate: _startDate!,
         endDate: _endDate!,
         totalPrice: _totalPrice,
-        status: 'confirmed',
+        status: 'pending',
         createdAt: DateTime.now(),
       );
 

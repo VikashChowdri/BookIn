@@ -176,9 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: IconButton(
             icon: const Icon(Icons.notifications_rounded, size: 20),
-            tooltip: 'Simulate Review Notification',
+            tooltip: 'Notifications',
             onPressed: () {
-              AppNotification.showReviewNotification(context);
+              Navigator.pushNamed(context, AppRoutes.notifications);
             },
           ),
         ),

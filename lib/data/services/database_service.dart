@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/book.dart';
 import '../../models/booking.dart';
+import '../../models/notification_item.dart';
 import '../../core/constants/app_constants.dart';
 
 class DatabaseService {
@@ -14,6 +15,8 @@ class DatabaseService {
       _firestore.collection(AppConstants.booksCollection);
   CollectionReference get _bookingsRef =>
       _firestore.collection(AppConstants.bookingsCollection);
+  CollectionReference get _notificationsRef =>
+      _firestore.collection(AppConstants.notificationsCollection);
 
   // ---------------------------------------------------------------------------
   // Books CRUD Operations
@@ -137,8 +140,24 @@ class DatabaseService {
       );
       await docRef.set(newBooking.toMap());
       
-      // Optionally mark book as unavailable
+      // Optionally mark book as unavailable while pending
       await updateBookAvailability(booking.bookId, false);
+
+      // Create a notification for the seller
+      if (booking.buyerId != booking.sellerId) {
+        final notifRef = _notificationsRef.doc();
+        final notif = NotificationItem(
+          id: notifRef.id,
+          userId: booking.sellerId,
+          title: 'New Booking Request!',
+          body: 'Someone wants to buy/rent "${booking.bookTitle}".',
+          type: 'booking_request',
+          relatedId: newBooking.id,
+          isRead: false,
+          createdAt: DateTime.now(),
+        );
+        await notifRef.set(notif.toMap());
+      }
     } catch (e) {
       throw Exception('Failed to create booking: $e');
     }
@@ -152,15 +171,28 @@ class DatabaseService {
     }
   }
 
+  Future<Booking?> getBooking(String bookingId) async {
+    try {
+      final doc = await _bookingsRef.doc(bookingId).get();
+      if (doc.exists && doc.data() != null) {
+        return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch booking: $e');
+    }
+  }
+
   Stream<List<Booking>> getUserBookingsStream(String userId) {
     return _bookingsRef
         .where('buyerId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final list = snapshot.docs.map((doc) {
         return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
@@ -170,6 +202,66 @@ class DatabaseService {
       await updateBookAvailability(bookId, true);
     } catch (e) {
       throw Exception('Failed to cancel booking: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Notifications CRUD Operations
+  // ---------------------------------------------------------------------------
+
+  Stream<List<NotificationItem>> getUserNotificationsStream(String userId) {
+    return _notificationsRef
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) {
+        return NotificationItem.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await _notificationsRef.doc(notificationId).update({'isRead': true});
+    } catch (e) {
+      throw Exception('Failed to mark notification as read: $e');
+    }
+  }
+
+  Future<void> respondToBookingRequest(String notificationId, String bookingId, String bookId, String buyerId, String bookTitle, bool accept) async {
+    try {
+      // 1. Update booking status
+      final newStatus = accept ? 'accepted' : 'rejected';
+      await _bookingsRef.doc(bookingId).update({'status': newStatus});
+
+      // 2. If rejected, make the book available again
+      if (!accept) {
+        await updateBookAvailability(bookId, true);
+      }
+
+      // 3. Mark the seller's notification as read or update its type
+      await _notificationsRef.doc(notificationId).update({
+        'isRead': true,
+        'type': accept ? 'booking_request_accepted' : 'booking_request_rejected',
+      });
+
+      // 4. Send a notification to the buyer
+      final notifRef = _notificationsRef.doc();
+      final notif = NotificationItem(
+        id: notifRef.id,
+        userId: buyerId,
+        title: accept ? 'Booking Accepted!' : 'Booking Rejected',
+        body: accept ? 'Your request for "$bookTitle" was accepted.' : 'Your request for "$bookTitle" was rejected.',
+        type: 'general',
+        relatedId: bookingId,
+        isRead: false,
+        createdAt: DateTime.now(),
+      );
+      await notifRef.set(notif.toMap());
+    } catch (e) {
+      throw Exception('Failed to respond to booking: $e');
     }
   }
 }

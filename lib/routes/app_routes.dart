@@ -19,6 +19,7 @@ import '../screens/search/search_results_screen.dart';
 import '../screens/search/search_screen.dart';
 import '../screens/booking/my_bookings_screen.dart';
 import '../screens/booking/booking_confirmation_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
 import '../models/booking.dart';
 
 class AppRoutes {
@@ -43,6 +44,7 @@ class AppRoutes {
   static const String myListings = '/my-listings';
   static const String myBookings = '/my-bookings';
   static const String bookingConfirmation = '/booking-confirmation';
+  static const String notifications = '/notifications';
 
   // Member 3 - Search & Discovery
   static const String search = '/search';
@@ -66,6 +68,7 @@ class AppRoutes {
         addBook: (context) => const AddEditBookScreen(),
         myListings: (context) => const MyListingsScreen(),
         myBookings: (context) => const MyBookingsScreen(),
+        notifications: (context) => const NotificationsScreen(),
 
         // Member 3: Search & Discovery — Real Screens
         search: (context) => const SearchScreen(),
