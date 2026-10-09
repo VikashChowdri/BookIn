@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../booking/booking_dialog.dart';
 import '../../data/services/auth_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -569,13 +570,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             child: ElevatedButton.icon(
               onPressed: book.available
                   ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Exchange / Buy feature coming soon!'),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => BookingDialog(book: book),
                       );
                     }
                   : null,

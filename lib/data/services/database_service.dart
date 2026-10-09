@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/book.dart';
+import '../../models/booking.dart';
 import '../../core/constants/app_constants.dart';
 
 class DatabaseService {
@@ -11,6 +12,8 @@ class DatabaseService {
   // Collection References
   CollectionReference get _booksRef =>
       _firestore.collection(AppConstants.booksCollection);
+  CollectionReference get _bookingsRef =>
+      _firestore.collection(AppConstants.bookingsCollection);
 
   // ---------------------------------------------------------------------------
   // Books CRUD Operations
@@ -109,6 +112,64 @@ class DatabaseService {
       ).toList();
     } catch (e) {
       throw Exception('Failed to search books: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bookings CRUD Operations
+  // ---------------------------------------------------------------------------
+
+  Future<void> createBooking(Booking booking) async {
+    try {
+      final docRef = _bookingsRef.doc();
+      final newBooking = Booking(
+        id: docRef.id,
+        bookId: booking.bookId,
+        bookTitle: booking.bookTitle,
+        bookImageUrl: booking.bookImageUrl,
+        buyerId: booking.buyerId,
+        sellerId: booking.sellerId,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        totalPrice: booking.totalPrice,
+        status: booking.status,
+        createdAt: booking.createdAt,
+      );
+      await docRef.set(newBooking.toMap());
+      
+      // Optionally mark book as unavailable
+      await updateBookAvailability(booking.bookId, false);
+    } catch (e) {
+      throw Exception('Failed to create booking: $e');
+    }
+  }
+
+  Future<void> updateBookAvailability(String bookId, bool available) async {
+    try {
+      await _booksRef.doc(bookId).update({'available': available});
+    } catch (e) {
+      throw Exception('Failed to update book availability: $e');
+    }
+  }
+
+  Stream<List<Booking>> getUserBookingsStream(String userId) {
+    return _bookingsRef
+        .where('buyerId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+    });
+  }
+
+  Future<void> cancelBooking(String bookingId, String bookId) async {
+    try {
+      await _bookingsRef.doc(bookingId).update({'status': 'cancelled'});
+      await updateBookAvailability(bookId, true);
+    } catch (e) {
+      throw Exception('Failed to cancel booking: $e');
     }
   }
 }

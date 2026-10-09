@@ -13,6 +13,7 @@ class AppConstants {
   static const String favoritesCollection = 'favorites';
   static const String searchHistoryCollection = 'search_history';
   static const String categoriesCollection = 'categories';
+  static const String bookingsCollection = 'bookings';
 
   // Firebase Storage Folders
   static const String bookImagesFolder = 'book_images';
