@@ -40,6 +40,20 @@ class AppConstants {
   static const String defaultCurrencySymbol = '₹';
 
   // Placeholder Assets
+  static const List<String> placeholderBookCovers = [
+    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400',
+    'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=400',
+    'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400',
+    'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400',
+    'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400',
+  ];
   static const String defaultBookCover = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400';
+  
+  static String getBookCover(String? imageUrl, String bookId) {
+    if (imageUrl != null && imageUrl.isNotEmpty) return imageUrl;
+    final hash = bookId.hashCode.abs();
+    return placeholderBookCovers[hash % placeholderBookCovers.length];
+  }
+
   static const String defaultUserAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200';
 }

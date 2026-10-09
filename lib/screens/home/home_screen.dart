@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/database_service.dart';
@@ -425,10 +426,16 @@ class _HomeScreenState extends State<HomeScreen> {
             fit: StackFit.expand,
             children: [
               // Image
-              Image.network(
-                book.imageUrl,
+              CachedNetworkImage(
+                imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
+                placeholder: (context, url) => Container(
+                  color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
                   color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
                   child: Center(
                     child: Icon(
@@ -625,10 +632,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                     child: Container(
                       color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-                      child: Image.network(
-                        book.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Center(
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => Center(
                           child: Icon(Icons.menu_book,
                               size: 40,
                               color: theme.colorScheme.primary.withValues(alpha: 0.3)),

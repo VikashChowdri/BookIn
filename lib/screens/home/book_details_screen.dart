@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
@@ -139,10 +140,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           fit: StackFit.expand,
           children: [
             // Book cover image
-            Image.network(
-              book.imageUrl,
+            CachedNetworkImage(
+              imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+              placeholder: (context, url) => Container(
+                color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
                 color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
                 child: Center(
                   child: Icon(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -107,9 +108,7 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
         subject: _subjectController.text.trim(),
         category: _selectedCategory ?? 'Other',
         department: _selectedDepartment ?? 'Other',
-        imageUrl: _imageUrlController.text.trim().isNotEmpty
-            ? _imageUrlController.text.trim()
-            : AppConstants.defaultBookCover,
+        imageUrl: _imageUrlController.text.trim(),
         description: _descriptionController.text.trim(),
         sellerName: AuthService.instance.currentUser?.displayName ?? 'User',
         sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
@@ -447,10 +446,13 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
         child: url.isNotEmpty
-            ? Image.network(
-                url,
+            ? CachedNetworkImage(
+                imageUrl: url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
+                placeholder: (context, url) => const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                errorWidget: (context, url, error) =>
                     _imagePlaceholder(theme, isError: true),
               )
             : _imagePlaceholder(theme),
