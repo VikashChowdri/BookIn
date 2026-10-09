@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../data/services/auth_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/dummy_books.dart';
@@ -25,6 +26,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isOwner = book.sellerId == AuthService.instance.currentUser?.uid;
 
     return Scaffold(
       body: CustomScrollView(
@@ -62,10 +64,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   // Seller Info
                   _buildSellerSection(theme, isDark),
 
-                  const SizedBox(height: 24),
-
-                  // Action Buttons
-                  _buildActionButtons(theme),
+                  if (isOwner) ...[
+                    const SizedBox(height: 24),
+                    // Action Buttons
+                    _buildActionButtons(theme),
+                  ],
                 ],
               ),
             ),
@@ -74,7 +77,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       ),
 
       // ── Bottom Action Bar ──
-      bottomNavigationBar: _buildBottomBar(theme, isDark),
+      bottomNavigationBar: isOwner ? null : _buildBottomBar(theme, isDark),
     );
   }
 
