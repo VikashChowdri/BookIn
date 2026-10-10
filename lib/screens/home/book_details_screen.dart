@@ -602,29 +602,40 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               children: [
                 if (book.price > 0)
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: book.available
-                          ? () {
-                              if (CartManager.instance.isInCart(book)) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Already in cart!')),
-                                );
-                                return;
-                              }
-                              CartManager.instance.addToCart(book);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Added to Cart!'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            }
-                          : null,
-                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                      label: const Text('Add to Cart'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 50),
-                      ),
+                    child: ListenableBuilder(
+                      listenable: CartManager.instance,
+                      builder: (context, _) {
+                        final inCart = CartManager.instance.isInCart(book);
+                        return OutlinedButton.icon(
+                          onPressed: book.available
+                              ? () {
+                                  if (inCart) {
+                                    // Pop the details screen so they can click the Cart tab
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please use the Cart tab at the bottom to view your cart.'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  CartManager.instance.addToCart(book);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Added to Cart!'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              : null,
+                          icon: Icon(inCart ? Icons.shopping_cart_checkout_rounded : Icons.add_shopping_cart_rounded, size: 18),
+                          label: Text(inCart ? 'Go to Cart' : 'Add to Cart'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 50),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 if (book.price > 0 && book.rentPrice > 0)
