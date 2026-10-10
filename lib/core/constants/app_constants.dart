@@ -15,6 +15,7 @@ class AppConstants {
   static const String categoriesCollection = 'categories';
   static const String bookingsCollection = 'bookings';
   static const String notificationsCollection = 'notifications';
+  static const String reviewsCollection = 'reviews';
 
   // Firebase Storage Folders
   static const String bookImagesFolder = 'book_images';

@@ -3,6 +3,7 @@ import '../../models/book.dart';
 import '../../models/booking.dart';
 import '../../models/notification_item.dart';
 import '../../models/user_model.dart';
+import '../../models/review.dart';
 import '../../core/constants/app_constants.dart';
 
 class DatabaseService {
@@ -20,6 +21,8 @@ class DatabaseService {
       _firestore.collection(AppConstants.notificationsCollection);
   CollectionReference get _usersRef =>
       _firestore.collection(AppConstants.usersCollection);
+  CollectionReference get _reviewsRef =>
+      _firestore.collection(AppConstants.reviewsCollection);
 
   // ---------------------------------------------------------------------------
   // User Profile CRUD Operations
@@ -422,6 +425,61 @@ class DatabaseService {
       await notifRef.set(notif.toMap());
     } catch (e) {
       throw Exception('Failed to process booking response: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reviews CRUD Operations
+  // ---------------------------------------------------------------------------
+
+  Future<void> addReview(Review review) async {
+    try {
+      final docRef = _reviewsRef.doc();
+      final newReview = Review(
+        id: docRef.id,
+        targetId: review.targetId,
+        targetType: review.targetType,
+        reviewerId: review.reviewerId,
+        reviewerName: review.reviewerName,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+      );
+      await docRef.set(newReview.toMap());
+    } catch (e) {
+      throw Exception('Failed to add review: $e');
+    }
+  }
+
+  Stream<List<Review>> getReviewsForTargetStream(String targetId, String targetType) {
+    return _reviewsRef
+        .where('targetId', isEqualTo: targetId)
+        .where('targetType', isEqualTo: targetType)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) {
+        return Review.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  Future<double> getAverageRating(String targetId, String targetType) async {
+    try {
+      final snapshot = await _reviewsRef
+          .where('targetId', isEqualTo: targetId)
+          .where('targetType', isEqualTo: targetType)
+          .get();
+      if (snapshot.docs.isEmpty) return 0.0;
+      double total = 0;
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        total += (data['rating'] ?? 0).toDouble();
+      }
+      return total / snapshot.docs.length;
+    } catch (e) {
+      return 0.0;
     }
   }
 }

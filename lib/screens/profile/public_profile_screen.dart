@@ -4,6 +4,7 @@ import '../../models/user_model.dart';
 import '../../data/services/database_service.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/book_card.dart';
+import '../review/reviews_list_widget.dart';
 
 class PublicProfileScreen extends StatelessWidget {
   final UserModel user;
@@ -120,6 +121,14 @@ class PublicProfileScreen extends StatelessWidget {
                   },
                 );
               },
+            ),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 16),
+            ReviewsListWidget(
+              targetId: user.id,
+              targetType: 'user',
+              targetName: user.publicName,
             ),
           ],
         ),

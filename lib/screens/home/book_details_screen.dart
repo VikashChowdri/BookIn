@@ -9,6 +9,7 @@ import '../../data/dummy_books.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
+import '../review/reviews_list_widget.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
@@ -71,6 +72,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     // Action Buttons
                     _buildActionButtons(theme),
                   ],
+
+                  const SizedBox(height: 24),
+
+                  // Reviews
+                  ReviewsListWidget(
+                    targetId: book.id,
+                    targetType: 'book',
+                    targetName: book.title,
+                  ),
                 ],
               ),
             ),
