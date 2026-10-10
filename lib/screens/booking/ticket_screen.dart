@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ticket_widget/ticket_widget.dart';
 import '../../models/booking.dart';
-import '../../core/constants/app_colors.dart';
 import 'package:intl/intl.dart';
 
 class TicketScreen extends StatelessWidget {
@@ -13,9 +12,9 @@ class TicketScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    final bool isReady = booking.status == 'accepted' || booking.status == 'active';
+    final normStatus = booking.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+    final bool isReady = normStatus == 'accepted' || normStatus == 'active';
 
     return Scaffold(
       backgroundColor: theme.colorScheme.primaryContainer,

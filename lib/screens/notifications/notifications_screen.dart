@@ -123,8 +123,15 @@ class _NotificationTileState extends State<_NotificationTile> {
       );
 
       if (mounted) {
+        final isRental = booking.type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
+        final message = accept
+            ? (isRental ? 'Rental Request Accepted!' : 'Purchase Request Accepted!')
+            : 'Request Rejected';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(accept ? 'Booking Accepted!' : 'Booking Rejected')),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: accept ? Colors.green : Colors.red,
+          ),
         );
       }
     } catch (e) {
@@ -146,7 +153,9 @@ class _NotificationTileState extends State<_NotificationTile> {
     IconData icon;
     Color iconColor;
 
-    switch (widget.notif.type) {
+    final normType = widget.notif.type.replaceAll(RegExp(r'[^a-zA-Z_]'), '').toLowerCase();
+
+    switch (normType) {
       case 'booking_request':
         icon = Icons.calendar_today;
         iconColor = Colors.orange;
@@ -213,14 +222,17 @@ class _NotificationTileState extends State<_NotificationTile> {
               widget.notif.body,
               style: theme.textTheme.bodyMedium,
             ),
-            if (widget.notif.type.trim().toLowerCase() == 'booking_request') ...[
+            if (normType == 'booking_request') ...[
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
                     onPressed: _isLoading ? null : () => _handleBookingAction(false),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                    ),
                     child: const Text('Reject'),
                   ),
                   const SizedBox(width: 12),

@@ -13,7 +13,6 @@ import '../screens/favorites/wishlist_screen.dart';
 import '../screens/home/add_edit_book_screen.dart';
 import '../screens/home/book_details_screen.dart';
 import '../screens/home/book_listing_screen.dart';
-import '../screens/home/home_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/home/my_listings_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
@@ -27,7 +26,6 @@ import '../screens/booking/booking_confirmation_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/booking/incoming_requests_screen.dart';
 import '../models/booking.dart';
-import '../models/book.dart';
 import '../screens/chat/chat_detail_screen.dart';
 
 class AppRoutes {
