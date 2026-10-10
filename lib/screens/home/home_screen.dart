@@ -10,6 +10,7 @@ import '../../utils/app_notification.dart';
 import '../../widgets/options_menu.dart';
 import '../../models/notification_item.dart';
 import '../../data/services/auth_service.dart';
+import '../../core/theme/theme_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -260,21 +261,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGreetingBanner(ThemeData theme, bool isDark) {
+    final isStudent = ThemeController.currentThemeType == AppThemeType.student;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.primaryDark, const Color(0xFF1E1B4B)]
-              : [AppColors.primary, const Color(0xFF6366F1)], // Indigo to lighter indigo
+          colors: isStudent
+              ? [const Color(0xFFE9E4F5), const Color(0xFFD6CDE9)] // Light purple gradient
+              : isDark
+                  ? [AppColors.primaryDark, const Color(0xFF1E1B4B)]
+                  : [AppColors.primary, const Color(0xFF6366F1)], // Indigo
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            color: isStudent
+                ? Colors.black.withValues(alpha: 0.05)
+                : theme.colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -288,7 +295,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Icon(
               Icons.menu_book_rounded,
               size: 120,
-              color: Colors.white.withValues(alpha: 0.1),
+              color: isStudent 
+                  ? const Color(0xFF86729F).withValues(alpha: 0.15) 
+                  : Colors.white.withValues(alpha: 0.1),
             ),
           ),
           Column(
@@ -297,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Ready to find your next great read?',
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: isStudent ? const Color(0xFF594D68) : Colors.white.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -305,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Welcome, Student! 👋',
                 style: theme.textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
+                  color: isStudent ? const Color(0xFF2C243B) : Colors.white,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                 ),
@@ -316,11 +325,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
-                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
-                      label: const Text('List a Book'),
+                      icon: Icon(
+                        Icons.add_circle_outline_rounded, 
+                        size: 20, 
+                        color: isStudent ? const Color(0xFF907BAA) : AppColors.primary
+                      ),
+                      label: Text(
+                        'List a Book',
+                        style: TextStyle(color: isStudent ? const Color(0xFF6B5887) : AppColors.primary),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -333,11 +348,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.pushNamed(context, AppRoutes.myListings),
-                      icon: const Icon(Icons.list_alt_rounded, size: 20),
-                      label: const Text('My Listings'),
+                      icon: const Icon(Icons.list_alt_rounded, size: 20, color: Colors.white),
+                      label: const Text('My Listings', style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        foregroundColor: Colors.white,
+                        backgroundColor: isStudent ? theme.colorScheme.primary : Colors.white.withValues(alpha: 0.2),
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(

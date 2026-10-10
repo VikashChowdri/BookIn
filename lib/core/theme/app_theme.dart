@@ -235,4 +235,122 @@ class AppTheme {
       ),
     );
   }
+
+  // student theme
+  static ThemeData get studentTheme {
+    final Color studentPrimary = const Color(0xFF6E8062); // Olive Green
+    final Color studentPurple = const Color(0xFFC7BCE3); // Light Purple/Lavender
+
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: studentPrimary,
+      brightness: Brightness.light,
+      primary: studentPrimary,
+      secondary: studentPurple,
+      surface: const Color(0xFFFFFDFB),
+      error: AppColors.error,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: colorScheme,
+      fontFamily: fontFamily,
+      scaffoldBackgroundColor: const Color(0xFFFFFDFB),
+
+      // AppBar Theme
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
+        elevation: AppConstants.elevationNone,
+        backgroundColor: Color(0xFFFFFDFB),
+        foregroundColor: AppColors.lightTextPrimary,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.lightTextPrimary,
+        ),
+      ),
+
+      // Card Theme
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          side: const BorderSide(color: Color(0xFFF1F1F1), width: 1),
+        ),
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppConstants.paddingMedium,
+          vertical: AppConstants.paddingSmall / 2,
+        ),
+      ),
+
+      // Input Decoration Theme
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppConstants.paddingMedium,
+          vertical: AppConstants.paddingMedium,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          borderSide: BorderSide(color: studentPrimary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        hintStyle: const TextStyle(
+          color: AppColors.lightTextMuted,
+          fontSize: 14,
+        ),
+      ),
+
+      // Elevated Button Theme
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: studentPrimary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 50),
+          elevation: AppConstants.elevationNone,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      // Outlined Button Theme
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: studentPrimary,
+          minimumSize: const Size(double.infinity, 50),
+          side: BorderSide(color: studentPrimary, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
 }
