@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:ticket_widget/ticket_widget.dart';
 import '../../models/booking.dart';
+import '../../core/constants/app_colors.dart';
+import 'package:intl/intl.dart';
 
 class TicketScreen extends StatelessWidget {
   final Booking booking;
@@ -12,82 +15,149 @@ class TicketScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final bool isReady = booking.status == 'accepted' || booking.status == 'active';
+
     return Scaffold(
       backgroundColor: theme.colorScheme.primaryContainer,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Your Ticket'),
+        title: const Text('Your Ticket', style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Container(
-            padding: const EdgeInsets.all(32.0),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
+          child: TicketWidget(
+            width: 350,
+            height: 500,
+            isCornerRounded: true,
+            padding: const EdgeInsets.all(20),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  'Show this QR code to the owner',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 120.0,
+                      height: 25.0,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30.0),
+                        border: Border.all(width: 1.0, color: isReady ? Colors.green : Colors.orange),
+                      ),
+                      child: Center(
+                        child: Text(
+                          isReady ? 'READY FOR PICKUP' : 'PENDING APPROVAL',
+                          style: TextStyle(color: isReady ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          booking.type.toUpperCase(),
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 20.0),
+                  child: Text(
+                    'Book Ticket',
+                    style: TextStyle(color: Colors.black, fontSize: 20.0, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Book: ${booking.bookTitle}',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: Text(
+                    booking.bookTitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.black, fontSize: 16.0, fontWeight: FontWeight.w500),
                   ),
                 ),
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                Padding(
+                  padding: const EdgeInsets.only(top: 25.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ticketDetailRow('OWNER', booking.sellerId.substring(0, 5).toUpperCase(), 'DATE', DateFormat('MMM dd, yyyy').format(booking.startDate)),
+                      const SizedBox(height: 10),
+                      _ticketDetailRow('PRICE', '₹${booking.totalPrice.toStringAsFixed(0)}', 'STATUS', booking.status.toUpperCase()),
+                    ],
                   ),
-                  child: QrImageView(
+                ),
+                const Spacer(),
+                if (isReady) ...[
+                  const Text(
+                    'Show this to the owner to scan',
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  QrImageView(
                     data: booking.id,
                     version: QrVersions.auto,
-                    size: 200.0,
+                    size: 150.0,
                     foregroundColor: Colors.black,
                   ),
-                ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Booking ID:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
+                  const SizedBox(height: 10),
+                  Text(
+                    booking.id.substring(0, 10).toUpperCase(),
+                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, letterSpacing: 2),
                   ),
-                ),
-                Text(
-                  booking.id,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
+                ] else ...[
+                  const Icon(Icons.access_time_filled, size: 80, color: Colors.orange),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ticket will be generated\nonce the owner accepts.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54, fontSize: 14),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                ]
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _ticketDetailRow(String title1, String desc1, String title2, String desc2) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title1,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc1,
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
+            )
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title2,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc2,
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
+            )
+          ],
+        )
+      ],
     );
   }
 }
