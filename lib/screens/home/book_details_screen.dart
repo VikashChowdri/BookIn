@@ -414,18 +414,31 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   // ─────────────────────────── Seller Info ─────────────────────────────────
 
   Widget _buildSellerSection(ThemeData theme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
+    return Material(
+      color: theme.cardColor,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        border: Border.all(
+        side: BorderSide(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
-      child: Row(
-        children: [
-          // Avatar
+      child: InkWell(
+        onTap: () async {
+          final sellerProfile = await DatabaseService.instance.getUserProfile(book.sellerId);
+          if (sellerProfile != null && mounted) {
+            Navigator.pushNamed(context, AppRoutes.publicProfile, arguments: sellerProfile);
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not load seller profile')),
+            );
+          }
+        },
+        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Avatar
           CircleAvatar(
             radius: 24,
             backgroundColor:
