@@ -119,9 +119,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             child: IconButton(
               icon: Icon(
                 _isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                color: _isFavorite ? AppColors.error : Colors.white,
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: _isFavorite ? theme.colorScheme.primary : Colors.white,
               ),
               onPressed: () {
                 setState(() {

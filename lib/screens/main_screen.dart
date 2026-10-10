@@ -9,6 +9,7 @@ import '../home/home_screen.dart';
 import '../search/search_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
+import '../cart/cart_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -24,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const SearchScreen(),
     const SizedBox(), // Placeholder for Add button
+    const CartScreen(),
     const NotificationsScreen(),
     const ProfileScreen(),
   ];
@@ -93,7 +95,11 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Add',
             ),
             BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 3 ? Icons.favorite_rounded : Icons.favorite_border_rounded),
+              icon: Icon(_currentIndex == 3 ? Icons.shopping_bag : Icons.shopping_bag_outlined),
+              label: 'Cart',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(_currentIndex == 4 ? Icons.favorite_rounded : Icons.favorite_border_rounded),
               label: 'Activity',
             ),
             BottomNavigationBarItem(
@@ -109,7 +115,7 @@ class _MainScreenState extends State<MainScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _currentIndex == 4 ? theme.colorScheme.primary : Colors.transparent,
+                        color: _currentIndex == 5 ? theme.colorScheme.primary : Colors.transparent,
                         width: 2,
                       ),
                     ),
