@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:async';
-import '../../core/constants/app_colors.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
 import '../../data/services/database_service.dart';
@@ -34,7 +33,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ChatService _chatService = ChatService.instance;
-  final String _currentUserId = AuthService.instance.currentUser?.uid ?? '';
+  String get _currentUserId => AuthService.instance.currentUser?.uid ?? '';
   bool _showContextBanner = false;
   bool _isUploadingImage = false;
   Timer? _typingTimer;
@@ -79,7 +78,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     final attachedId = _showContextBanner ? widget.contextBook?.id : null;
     final attachedTitle = _showContextBanner ? widget.contextBook?.title : null;
-    final attachedImage = _showContextBanner && widget.contextBook!.imageUrl.isNotEmpty 
+    final attachedImage = _showContextBanner && (widget.contextBook?.imageUrl.isNotEmpty ?? false)
         ? widget.contextBook!.imageUrl 
         : null;
 
@@ -94,14 +93,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _chatService.updateTypingStatus(widget.roomId, false);
     }
 
-    await _chatService.sendMessage(
-      widget.roomId, 
-      widget.otherUser.id, 
-      text,
-      attachedBookId: attachedId,
-      attachedBookTitle: attachedTitle,
-      attachedBookImageUrl: attachedImage,
-    );
+    try {
+      await _chatService.sendMessage(
+        widget.roomId, 
+        widget.otherUser.id, 
+        text,
+        attachedBookId: attachedId,
+        attachedBookTitle: attachedTitle,
+        attachedBookImageUrl: attachedImage,
+      );
+
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -149,7 +164,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final reasonController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Report User'),
         content: TextField(
           controller: reasonController,
@@ -161,13 +176,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () async {
               if (reasonController.text.trim().isEmpty) return;
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               try {
                 await DatabaseService.instance.reportUser(
                   _currentUserId, 
@@ -175,13 +190,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   reasonController.text.trim()
                 );
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     const SnackBar(content: Text('Report submitted successfully')),
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     SnackBar(content: Text('Failed to report: $e')),
                   );
                 }
@@ -197,29 +212,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _showBlockDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Block User'),
         content: const Text('Are you sure you want to block this user? You will not be able to send or receive messages from them.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               try {
                 await DatabaseService.instance.blockUser(_currentUserId, widget.otherUser.id);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     const SnackBar(content: Text('User blocked')),
                   );
-                  Navigator.pop(context); // Go back from chat screen
+                  Navigator.pop(this.context); // Go back from chat screen
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     SnackBar(content: Text('Failed to block: $e')),
                   );
                 }
@@ -255,35 +270,40 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 radius: 18,
                 backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                 backgroundImage: hasImage ? CachedNetworkImageProvider(widget.otherUser.profilePictureUrl) : null,
+                onBackgroundImageError: hasImage ? (error, stack) {} : null,
                 child: !hasImage
                     ? Icon(Icons.person, size: 20, color: theme.colorScheme.primary)
                     : null,
               ),
               const SizedBox(width: 12),
-              StreamBuilder<ChatRoom?>(
-                stream: _chatService.getChatRoomStream(widget.roomId),
-                builder: (context, snapshot) {
-                  final isOtherTyping = snapshot.data?.typing.contains(widget.otherUser.id) ?? false;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        widget.otherUser.publicName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                      if (isOtherTyping)
+              Expanded(
+                child: StreamBuilder<ChatRoom?>(
+                  stream: _chatService.getChatRoomStream(widget.roomId),
+                  builder: (context, snapshot) {
+                    final isOtherTyping = snapshot.data?.typing.contains(widget.otherUser.id) ?? false;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                         Text(
-                          'Typing...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.normal,
-                            color: theme.colorScheme.primary,
-                          ),
+                          widget.otherUser.publicName,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                    ],
-                  );
-                },
+                        if (isOtherTyping)
+                          Text(
+                            'Typing...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.normal,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -337,10 +357,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   return const Center(child: Text('Start the conversation!'));
                 }
 
-                // Mark as read whenever new messages arrive and we're looking at them
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _chatService.markAsRead(widget.roomId);
-                });
+                // Mark as read only if there are unread incoming messages
+                final hasUnread = messages.any((m) => m.senderId != _currentUserId && !m.isRead);
+                if (hasUnread) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      _chatService.markAsRead(widget.roomId);
+                    }
+                  });
+                }
 
                 return ListView.builder(
                   controller: _scrollController,
@@ -380,7 +405,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    if (message.attachedBookImageUrl != null)
+                                    if (message.attachedBookImageUrl != null && message.attachedBookImageUrl!.isNotEmpty)
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(4),
                                         child: CachedNetworkImage(
@@ -388,6 +413,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                           width: 32,
                                           height: 48,
                                           fit: BoxFit.cover,
+                                          errorWidget: (context, url, error) => const Icon(Icons.book, size: 24),
                                         ),
                                       ),
                                     const SizedBox(width: 8),
@@ -403,7 +429,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                   ],
                                 ),
                               ),
-                            if (message.chatImageUrl != null)
+                            if (message.chatImageUrl != null && message.chatImageUrl!.isNotEmpty)
                               Container(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 child: ClipRRect(
@@ -414,6 +440,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     placeholder: (context, url) => const SizedBox(
                                       height: 150,
                                       child: Center(child: CircularProgressIndicator()),
+                                    ),
+                                    errorWidget: (context, url, error) => const Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: Icon(Icons.broken_image, size: 36, color: Colors.grey),
                                     ),
                                   ),
                                 ),
@@ -516,7 +546,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               left: 16,
               right: 8,
               top: 8,
-              bottom: MediaQuery.of(context).padding.bottom + 8,
+              bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                  ? 8
+                  : MediaQuery.of(context).padding.bottom + 8,
             ),
             decoration: BoxDecoration(
               color: theme.scaffoldBackgroundColor,

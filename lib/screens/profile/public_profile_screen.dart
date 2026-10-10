@@ -61,7 +61,18 @@ class PublicProfileScreen extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () async {
                 final currentUserId = AuthService.instance.currentUser?.uid;
-                if (currentUserId == null || currentUserId == user.id) return;
+                if (currentUserId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please log in to send a message')),
+                  );
+                  return;
+                }
+                if (currentUserId == user.id) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('You cannot message yourself')),
+                  );
+                  return;
+                }
                 
                 // Show loading
                 showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));

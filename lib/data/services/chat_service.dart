@@ -18,6 +18,7 @@ class ChatService {
   Future<String> getOrCreateChatRoom(String otherUserId) async {
     final currentUserId = AuthService.instance.currentUser?.uid;
     if (currentUserId == null) throw Exception('User not logged in');
+    if (currentUserId == otherUserId) throw Exception('Cannot chat with yourself');
 
     final roomId = _getChatRoomId(currentUserId, otherUserId);
     final roomDoc = _firestore.collection('chats').doc(roomId);
@@ -43,43 +44,57 @@ class ChatService {
     final currentUserId = AuthService.instance.currentUser?.uid;
     if (currentUserId == null) return const Stream.empty();
 
+    // Query by arrayContains without orderBy to avoid requiring a composite index.
+    // We sort the results in memory by lastMessageTime descending.
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: currentUserId)
-        .orderBy('lastMessageTime', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final chats = snapshot.docs
           .map((doc) => ChatRoom.fromMap(doc.id, doc.data()))
           .toList();
+      chats.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return chats;
     });
   }
 
   Stream<List<Message>> getChatMessages(String roomId) {
+    // Sort in memory to avoid index requirements and latency compensation null-timestamp jumps
     return _firestore
         .collection('chats')
         .doc(roomId)
         .collection('messages')
-        .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final messages = snapshot.docs
           .map((doc) => Message.fromMap(doc.id, doc.data()))
           .toList();
+      messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return messages;
     });
   }
 
-  Future<void> sendMessage(String roomId, String otherUserId, String text, {String? attachedBookId, String? attachedBookTitle, String? attachedBookImageUrl, String? chatImageUrl}) async {
+  Future<void> sendMessage(
+    String roomId,
+    String otherUserId,
+    String text, {
+    String? attachedBookId,
+    String? attachedBookTitle,
+    String? attachedBookImageUrl,
+    String? chatImageUrl,
+  }) async {
     final currentUserId = AuthService.instance.currentUser?.uid;
     if (currentUserId == null || (text.trim().isEmpty && attachedBookId == null && chatImageUrl == null)) return;
 
     final roomDoc = _firestore.collection('chats').doc(roomId);
-    
-    // Add message
+
+    // Add message with isRead: false
     await roomDoc.collection('messages').add({
       'senderId': currentUserId,
       'text': text.trim(),
       'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
       if (attachedBookId != null) 'attachedBookId': attachedBookId,
       if (attachedBookTitle != null) 'attachedBookTitle': attachedBookTitle,
       if (attachedBookImageUrl != null) 'attachedBookImageUrl': attachedBookImageUrl,
@@ -93,53 +108,87 @@ class ChatService {
       lastMsgText = 'Shared a book: $attachedBookTitle';
     }
 
-    // Update room
-    await roomDoc.update({
+    // Update room safely with SetOptions(merge: true)
+    await roomDoc.set({
+      'participants': [currentUserId, otherUserId],
       'lastMessage': lastMsgText,
       'lastMessageTime': FieldValue.serverTimestamp(),
-      'unreadCounts.$otherUserId': FieldValue.increment(1),
-    });
+      'unreadCounts': {
+        otherUserId: FieldValue.increment(1),
+        currentUserId: 0,
+      },
+    }, SetOptions(merge: true));
+
+    // Send in-app notification to receiver
+    try {
+      final currentUserName = AuthService.instance.currentUser?.displayName ?? 'Someone';
+      final notifRef = _firestore.collection('notifications').doc();
+      await notifRef.set({
+        'userId': otherUserId,
+        'title': 'New Message from $currentUserName',
+        'body': lastMsgText,
+        'type': 'chat_message',
+        'relatedId': roomId,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
   }
 
   Future<void> markAsRead(String roomId) async {
     final currentUserId = AuthService.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
-    final roomDoc = _firestore.collection('chats').doc(roomId);
-    await roomDoc.update({
-      'unreadCounts.$currentUserId': 0,
-    });
+    try {
+      final roomDoc = _firestore.collection('chats').doc(roomId);
+      await roomDoc.set({
+        'unreadCounts': {
+          currentUserId: 0,
+        },
+      }, SetOptions(merge: true));
 
-    // Mark messages as read
-    final unreadMessages = await roomDoc.collection('messages')
-        .where('senderId', isNotEqualTo: currentUserId)
-        .where('isRead', isEqualTo: false)
-        .get();
+      // Mark messages as read using single-field query to avoid missing composite index
+      final unreadMessages = await roomDoc
+          .collection('messages')
+          .where('isRead', isEqualTo: false)
+          .get();
 
-    final batch = _firestore.batch();
-    for (var doc in unreadMessages.docs) {
-      batch.update(doc.reference, {
-        'isRead': true,
-        'readAt': FieldValue.serverTimestamp(),
-      });
+      final batch = _firestore.batch();
+      bool hasUpdates = false;
+      for (var doc in unreadMessages.docs) {
+        final data = doc.data();
+        if (data['senderId'] != currentUserId) {
+          batch.update(doc.reference, {
+            'isRead': true,
+            'readAt': FieldValue.serverTimestamp(),
+          });
+          hasUpdates = true;
+        }
+      }
+      if (hasUpdates) {
+        await batch.commit();
+      }
+    } catch (_) {
+      // Don't crash if offline or indexing issues
     }
-    await batch.commit();
   }
 
   Future<void> updateTypingStatus(String roomId, bool isTyping) async {
     final currentUserId = AuthService.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
-    final roomDoc = _firestore.collection('chats').doc(roomId);
-    if (isTyping) {
-      await roomDoc.update({
-        'typing': FieldValue.arrayUnion([currentUserId])
-      });
-    } else {
-      await roomDoc.update({
-        'typing': FieldValue.arrayRemove([currentUserId])
-      });
-    }
+    try {
+      final roomDoc = _firestore.collection('chats').doc(roomId);
+      if (isTyping) {
+        await roomDoc.set({
+          'typing': FieldValue.arrayUnion([currentUserId])
+        }, SetOptions(merge: true));
+      } else {
+        await roomDoc.set({
+          'typing': FieldValue.arrayRemove([currentUserId])
+        }, SetOptions(merge: true));
+      }
+    } catch (_) {}
   }
 
   Stream<ChatRoom?> getChatRoomStream(String roomId) {
