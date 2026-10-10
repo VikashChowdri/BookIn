@@ -22,7 +22,7 @@ class TicketScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Your Ticket', style: TextStyle(color: Colors.white)),
+        title: const Text('Book Pass', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
@@ -66,7 +66,7 @@ class TicketScreen extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.only(top: 20.0),
                   child: Text(
-                    'Book Ticket',
+                    'Booking Pass',
                     style: TextStyle(color: Colors.black, fontSize: 20.0, fontWeight: FontWeight.bold),
                   ),
                 ),
