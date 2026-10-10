@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/notification_item.dart';
-import '../../models/booking.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
-import '../../core/constants/app_colors.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -160,6 +158,10 @@ class _NotificationTileState extends State<_NotificationTile> {
       case 'booking_request_rejected':
         icon = Icons.cancel;
         iconColor = Colors.red;
+        break;
+      case 'chat_message':
+        icon = Icons.chat_bubble_outline;
+        iconColor = Colors.blue;
         break;
       default:
         icon = Icons.notifications;

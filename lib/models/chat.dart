@@ -18,12 +18,19 @@ class ChatRoom {
   });
 
   factory ChatRoom.fromMap(String id, Map<String, dynamic> data) {
+    Map<String, int> counts = {};
+    if (data['unreadCounts'] is Map) {
+      (data['unreadCounts'] as Map).forEach((k, v) {
+        counts[k.toString()] = (v is num) ? v.toInt() : 0;
+      });
+    }
+
     return ChatRoom(
       id: id,
       participants: List<String>.from(data['participants'] ?? []),
       lastMessage: data['lastMessage'] ?? '',
       lastMessageTime: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      unreadCounts: Map<String, int>.from(data['unreadCounts'] ?? {}),
+      unreadCounts: counts,
       typing: List<String>.from(data['typing'] ?? []),
     );
   }

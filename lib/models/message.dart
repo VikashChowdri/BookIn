@@ -50,7 +50,7 @@ class Message {
       if (attachedBookImageUrl != null) 'attachedBookImageUrl': attachedBookImageUrl,
       if (chatImageUrl != null) 'chatImageUrl': chatImageUrl,
       'isRead': isRead,
-      if (readAt != null) 'readAt': FieldValue.serverTimestamp(),
+      if (readAt != null) 'readAt': Timestamp.fromDate(readAt!),
     };
   }
 }
