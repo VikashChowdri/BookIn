@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../data/services/database_service.dart';
+import '../../data/services/auth_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -30,6 +31,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _usernameController.text = args.username;
         _phoneController.text = args.phone ?? '';
         _bioController.text = args.bio ?? '';
+      } else {
+        // Fallback if user model doesn't exist yet
+        final user = AuthService.instance.currentUser;
+        if (user != null) {
+          _userModel = UserModel(
+            id: user.uid,
+            username: user.email?.split('@').first ?? 'user',
+            email: user.email ?? '',
+            publicName: user.displayName ?? 'BookIn User',
+            profilePictureUrl: '',
+            createdAt: DateTime.now(),
+          );
+          _nameController.text = _userModel!.publicName;
+          _usernameController.text = _userModel!.username;
+        }
       }
     }
   }

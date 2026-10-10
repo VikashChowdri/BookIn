@@ -43,7 +43,7 @@ class DatabaseService {
 
   Future<void> updateUserProfile(UserModel user) async {
     try {
-      await _usersRef.doc(user.id).update(user.toMap());
+      await _usersRef.doc(user.id).set(user.toMap(), SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }
