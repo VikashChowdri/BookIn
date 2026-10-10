@@ -77,8 +77,8 @@ class ChatListScreen extends StatelessWidget {
                 future: DatabaseService.instance.getUserProfile(otherUserId),
                 builder: (context, userSnapshot) {
                   final otherUser = userSnapshot.data;
-                  final hasImage = otherUser?.profilePictureUrl != null &&
-                      otherUser!.profilePictureUrl.isNotEmpty &&
+                  final hasImage = otherUser != null && 
+                      otherUser.profilePictureUrl.isNotEmpty &&
                       !otherUser.profilePictureUrl.contains('unsplash');
 
                   return ListTile(
