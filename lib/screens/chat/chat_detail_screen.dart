@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
+import '../../data/services/database_service.dart';
 import '../../models/message.dart';
 import '../../models/user_model.dart';
 import '../../models/book.dart';
@@ -117,6 +118,93 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  void _showReportDialog(BuildContext context) {
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report User'),
+        content: TextField(
+          controller: reasonController,
+          decoration: const InputDecoration(
+            hintText: 'Reason for reporting...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (reasonController.text.trim().isEmpty) return;
+              Navigator.pop(context);
+              try {
+                await DatabaseService.instance.reportUser(
+                  _currentUserId, 
+                  widget.otherUser.id, 
+                  reasonController.text.trim()
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Report submitted successfully')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to report: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBlockDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Block User'),
+        content: const Text('Are you sure you want to block this user? You will not be able to send or receive messages from them.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await DatabaseService.instance.blockUser(_currentUserId, widget.otherUser.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('User blocked')),
+                  );
+                  Navigator.pop(context); // Go back from chat screen
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to block: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Block'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -152,6 +240,39 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ],
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'report') {
+                _showReportDialog(context);
+              } else if (value == 'block') {
+                _showBlockDialog(context);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Report User'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'block',
+                child: Row(
+                  children: [
+                    Icon(Icons.block_outlined, size: 20, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Block User', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [

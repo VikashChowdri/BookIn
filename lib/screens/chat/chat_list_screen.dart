@@ -20,20 +20,33 @@ class ChatListScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Messages'),
       ),
-      body: StreamBuilder<List<ChatRoom>>(
-        stream: ChatService.instance.getUserChats(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      body: StreamBuilder<UserModel?>(
+        stream: DatabaseService.instance.getUserProfileStream(AuthService.instance.currentUser?.uid ?? ''),
+        builder: (context, userSnapshot) {
+          final currentUserProfile = userSnapshot.data;
+          final blockedUsers = currentUserProfile?.blockedUsers ?? [];
+
+          return StreamBuilder<List<ChatRoom>>(
+            stream: ChatService.instance.getUserChats(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final chats = snapshot.data!;
+              final allChats = snapshot.data!;
+              
+              // Filter out chats with blocked users
+              final chats = allChats.where((chat) {
+                final currentUserId = AuthService.instance.currentUser?.uid;
+                final otherUserId = chat.participants.firstWhere((id) => id != currentUserId, orElse: () => '');
+                return !blockedUsers.contains(otherUserId);
+              }).toList();
 
-          if (chats.isEmpty) {
-            return Center(
+              if (chats.isEmpty) {
+                return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -141,9 +154,11 @@ class ChatListScreen extends StatelessWidget {
             },
           );
         },
-      ),
-    );
-  }
+      );
+    },
+  ),
+);
+}
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();
