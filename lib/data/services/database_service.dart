@@ -360,6 +360,21 @@ class DatabaseService {
     }
   }
 
+  Future<bool> hasSuccessfulTransaction(String buyerId, String sellerId) async {
+    try {
+      final snapshot = await _bookingsRef
+          .where('buyerId', isEqualTo: buyerId)
+          .where('sellerId', isEqualTo: sellerId)
+          .where('status', isEqualTo: 'accepted')
+          .limit(1)
+          .get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+
   // ---------------------------------------------------------------------------
   // Notifications CRUD Operations
   // ---------------------------------------------------------------------------

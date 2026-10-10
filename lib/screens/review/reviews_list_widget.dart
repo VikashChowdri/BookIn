@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/review.dart';
 import '../../data/services/database_service.dart';
+import '../../data/services/auth_service.dart';
 import 'review_dialog.dart';
 
 class ReviewsListWidget extends StatelessWidget {
@@ -63,20 +64,21 @@ class ReviewsListWidget extends StatelessWidget {
                 ),
               ],
             ),
-            TextButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => ReviewDialog(
-                    targetId: targetId,
-                    targetType: targetType,
-                    targetName: targetName,
-                  ),
-                );
-              },
-              icon: const Icon(Icons.edit_outlined, size: 16),
-              label: const Text('Leave a Review'),
-            ),
+            if (targetType == 'user')
+              FutureBuilder<bool>(
+                future: DatabaseService.instance.hasSuccessfulTransaction(
+                  AuthService.instance.currentUser?.uid ?? '',
+                  targetId,
+                ),
+                builder: (context, snapshot) {
+                  final hasTransaction = snapshot.data ?? false;
+                  if (!hasTransaction) return const SizedBox.shrink();
+
+                  return _buildReviewButton(context);
+                },
+              )
+            else
+              _buildReviewButton(context),
           ],
         ),
         const SizedBox(height: 8),
@@ -143,6 +145,23 @@ class ReviewsListWidget extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildReviewButton(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (_) => ReviewDialog(
+            targetId: targetId,
+            targetType: targetType,
+            targetName: targetName,
+          ),
+        );
+      },
+      icon: const Icon(Icons.edit_outlined, size: 16),
+      label: const Text('Leave a Review'),
     );
   }
 }
