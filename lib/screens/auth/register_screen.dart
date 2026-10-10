@@ -42,11 +42,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      // Navigate to verification screen after successful sign-up
-      Navigator.pushNamed(
+      // Navigate to home screen directly after successful sign-up
+      Navigator.pushReplacementNamed(
         context,
-        AppRoutes.verification,
-        arguments: {'email': _emailController.text},
+        AppRoutes.home,
       );
     } on AuthException catch (e) {
       if (!mounted) return;

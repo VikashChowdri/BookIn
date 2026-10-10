@@ -133,18 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
-            if (user != null && !user.emailVerified) ...[
-              const SizedBox(height: 8),
-              Chip(
-                avatar: Icon(Icons.warning_amber_rounded, size: 16, color: theme.colorScheme.error),
-                label: Text(
-                  'Email not verified',
-                  style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
-                ),
-                backgroundColor: theme.colorScheme.error.withValues(alpha: 0.1),
-                side: BorderSide.none,
-              ),
-            ],
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

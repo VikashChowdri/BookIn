@@ -68,8 +68,7 @@ class AuthService {
         await DatabaseService.instance.createUserProfile(userModel);
       }
 
-      // 5. Send verification email
-      await credential.user?.sendEmailVerification();
+      // 5. Navigate without verification for now (Removed sendEmailVerification)
 
       return credential;
     } on FirebaseException catch (e) {

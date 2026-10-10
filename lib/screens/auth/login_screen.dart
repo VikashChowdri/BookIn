@@ -36,16 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // If email isn't verified, redirect to the verification screen
-      if (credential.user != null && !credential.user!.emailVerified) {
-        Navigator.pushNamed(
-          context,
-          AppRoutes.verification,
-          arguments: {'email': credential.user!.email ?? ''},
-        );
-        return;
-      }
-
       // Successful sign-in — go to home
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } on AuthException catch (e) {
