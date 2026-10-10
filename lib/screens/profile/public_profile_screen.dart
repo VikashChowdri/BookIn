@@ -3,6 +3,8 @@ import '../../models/book.dart';
 import '../../models/user_model.dart';
 import '../../data/services/database_service.dart';
 import '../../routes/app_routes.dart';
+import '../../data/services/auth_service.dart';
+import '../../data/services/chat_service.dart';
 import '../../utils/favorites_manager.dart';
 import '../../widgets/book_card.dart';
 import '../review/reviews_list_widget.dart';
@@ -53,6 +55,42 @@ class PublicProfileScreen extends StatelessWidget {
               '@${user.username}',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final currentUserId = AuthService.instance.currentUser?.uid;
+                if (currentUserId == null || currentUserId == user.id) return;
+                
+                // Show loading
+                showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+                try {
+                  final roomId = await ChatService.instance.getOrCreateChatRoom(user.id);
+                  if (context.mounted) {
+                    Navigator.pop(context); // pop loading
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.chatDetail,
+                      arguments: {
+                        'roomId': roomId,
+                        'otherUser': user,
+                      },
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context); // pop loading
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error starting chat: $e')),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.chat_bubble_rounded, size: 20),
+              label: const Text('Message'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(140, 40),
               ),
             ),
             const SizedBox(height: 24),

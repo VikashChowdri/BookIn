@@ -27,6 +27,7 @@ import '../screens/booking/booking_confirmation_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/booking/incoming_requests_screen.dart';
 import '../models/booking.dart';
+import '../screens/chat/chat_detail_screen.dart';
 
 class AppRoutes {
   // Common / Splash
@@ -61,6 +62,7 @@ class AppRoutes {
   static const String searchResults = '/search-results';
   static const String favorites = '/favorites';
   static const String wishlist = '/wishlist';
+  static const String chatDetail = '/chat-detail';
 
   static Map<String, WidgetBuilder> get routes => {
         // Common
@@ -172,6 +174,20 @@ class AppRoutes {
       if (userModel != null) {
         return MaterialPageRoute(
           builder: (_) => PublicProfileScreen(user: userModel),
+          settings: settings,
+        );
+      }
+    }
+
+    // Chat Detail — requires roomId and UserModel
+    if (settings.name == chatDetail) {
+      final args = settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['roomId'] != null && args['otherUser'] != null) {
+        return MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(
+            roomId: args['roomId'] as String,
+            otherUser: args['otherUser'] as UserModel,
+          ),
           settings: settings,
         );
       }
