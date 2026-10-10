@@ -10,6 +10,7 @@ import 'search/search_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'profile/profile_screen.dart';
 import 'cart/cart_screen.dart';
+import 'common/placeholder_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -25,6 +26,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const SearchScreen(),
     const SizedBox(), // Placeholder for Add button
+    const PlaceholderScreen(title: 'Messages', icon: Icons.chat_bubble_outline_rounded, subtitle: 'Chat functionality coming soon.'),
     const CartScreen(),
     const ProfileScreen(),
   ];
@@ -94,7 +96,11 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Add',
             ),
             BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 3 ? Icons.shopping_bag : Icons.shopping_bag_outlined),
+              icon: Icon(_currentIndex == 3 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(_currentIndex == 4 ? Icons.shopping_bag : Icons.shopping_bag_outlined),
               label: 'Cart',
             ),
 
@@ -111,7 +117,7 @@ class _MainScreenState extends State<MainScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _currentIndex == 4 ? theme.colorScheme.primary : Colors.transparent,
+                        color: _currentIndex == 5 ? theme.colorScheme.primary : Colors.transparent,
                         width: 2,
                       ),
                     ),
