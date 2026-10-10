@@ -63,6 +63,23 @@ class DatabaseService {
     }
   }
 
+  Future<List<UserModel>> searchUsers(String query) async {
+    try {
+      final snapshot = await _usersRef.get();
+      final allUsers = snapshot.docs.map((doc) =>
+        UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)
+      ).toList();
+
+      final lowercaseQuery = query.toLowerCase();
+      return allUsers.where((user) =>
+        user.username.toLowerCase().contains(lowercaseQuery) ||
+        user.publicName.toLowerCase().contains(lowercaseQuery)
+      ).toList();
+    } catch (e) {
+      throw Exception('Failed to search users: $e');
+    }
+  }
+
   Future<void> deleteUserData(String userId) async {
     try {
       final batch = _firestore.batch();
