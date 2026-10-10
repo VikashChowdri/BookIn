@@ -17,7 +17,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? _userModel;
   bool _isLoading = true;
   int _booksListed = 0;
-  int _exchanges = 0;
   double _rating = 0.0;
 
   @override
@@ -31,14 +30,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user != null) {
       final userModel = await DatabaseService.instance.getUserProfile(user.uid);
       final booksCount = await DatabaseService.instance.getUserBooksCount(user.uid);
-      final exchangesCount = await DatabaseService.instance.getUserExchangesCount(user.uid);
       final ratingVal = await DatabaseService.instance.getAverageRating(user.uid, 'user');
       
       if (mounted) {
         setState(() {
           _userModel = userModel;
           _booksListed = booksCount;
-          _exchanges = exchangesCount;
           _rating = ratingVal;
           _isLoading = false;
         });
@@ -154,7 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildStatColumn('$_booksListed', 'Books Listed', theme),
-                _buildStatColumn('$_exchanges', 'Exchanges', theme),
                 _buildStatColumn(_rating > 0 ? _rating.toStringAsFixed(1) : 'N/A', 'Rating', theme),
               ],
             ),

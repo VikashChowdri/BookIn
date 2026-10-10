@@ -63,7 +63,7 @@ class AppNotification {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Alex left a review for your recent exchange.',
+                          'Alex left a review for your recent order.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
