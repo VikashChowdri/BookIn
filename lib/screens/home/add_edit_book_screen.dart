@@ -448,7 +448,7 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
                           ),
                           Text(
                             _isAvailable
-                                ? 'Book is available for sale/exchange'
+                                ? 'Book is available for sale/rent'
                                 : 'Book is marked as sold',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
