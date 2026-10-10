@@ -7,6 +7,8 @@ class UserModel {
   final String publicName;
   final String profilePictureUrl;
   final DateTime createdAt;
+  final String? phone;
+  final String? bio;
 
   UserModel({
     required this.id,
@@ -15,6 +17,8 @@ class UserModel {
     required this.publicName,
     required this.profilePictureUrl,
     required this.createdAt,
+    this.phone,
+    this.bio,
   });
 
   UserModel copyWith({
@@ -24,6 +28,8 @@ class UserModel {
     String? publicName,
     String? profilePictureUrl,
     DateTime? createdAt,
+    String? phone,
+    String? bio,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -32,6 +38,8 @@ class UserModel {
       publicName: publicName ?? this.publicName,
       profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       createdAt: createdAt ?? this.createdAt,
+      phone: phone ?? this.phone,
+      bio: bio ?? this.bio,
     );
   }
 
@@ -42,6 +50,8 @@ class UserModel {
       'publicName': publicName,
       'profilePictureUrl': profilePictureUrl,
       'createdAt': Timestamp.fromDate(createdAt),
+      if (phone != null) 'phone': phone,
+      if (bio != null) 'bio': bio,
     };
   }
 
@@ -55,6 +65,8 @@ class UserModel {
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
+      phone: map['phone'],
+      bio: map['bio'],
     );
   }
 }
