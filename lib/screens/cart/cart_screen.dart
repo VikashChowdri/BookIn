@@ -41,12 +41,12 @@ class _CartScreenState extends State<CartScreen> {
           bookTitle: book.title,
           bookImageUrl: book.imageUrl,
           buyerId: user.uid,
-          buyerName: user.displayName ?? 'Unknown',
           sellerId: book.sellerId,
-          sellerName: book.sellerName,
+          startDate: DateTime.now(),
+          endDate: DateTime.now(),
           status: 'pending',
           type: 'purchase', // Cart is only for purchasing
-          price: book.price,
+          totalPrice: book.price,
           createdAt: DateTime.now(),
         );
         await DatabaseService.instance.createBooking(booking);
