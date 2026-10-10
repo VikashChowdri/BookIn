@@ -26,7 +26,7 @@ class _BookingDialogState extends State<BookingDialog> {
   @override
   void initState() {
     super.initState();
-    _bookingType = widget.book.rentPrice > 0 ? 'rental' : 'purchase';
+    _bookingType = 'rental';
   }
 
   void _pickDates() async {
@@ -49,15 +49,11 @@ class _BookingDialogState extends State<BookingDialog> {
   }
 
   double get _totalPrice {
-    if (_bookingType == 'purchase') {
-      return widget.book.price;
-    } else {
-      if (_startDate != null && _endDate != null) {
-        final days = _endDate!.difference(_startDate!).inDays;
-        return widget.book.rentPrice * (days > 0 ? days : 1);
-      }
-      return 0;
+    if (_startDate != null && _endDate != null) {
+      final days = _endDate!.difference(_startDate!).inDays;
+      return widget.book.rentPrice * (days > 0 ? days : 1);
     }
+    return 0;
   }
 
   void _confirmBooking() async {
@@ -124,23 +120,8 @@ class _BookingDialogState extends State<BookingDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.book.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('Rent ${widget.book.title}', style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          if (widget.book.rentPrice > 0) ...[
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'purchase', label: Text('Buy')),
-                ButtonSegment(value: 'rental', label: Text('Rent')),
-              ],
-              selected: {_bookingType},
-              onSelectionChanged: (Set<String> newSelection) {
-                setState(() {
-                  _bookingType = newSelection.first;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
           if (_bookingType == 'rental')
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -178,7 +159,7 @@ class _BookingDialogState extends State<BookingDialog> {
           onPressed: _isLoading ? null : _confirmBooking,
           child: _isLoading
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Confirm Booking'),
+              : const Text('Confirm Rental'),
         ),
       ],
     );

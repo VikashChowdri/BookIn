@@ -134,7 +134,14 @@ class _HomeScreenState extends State<HomeScreen> {
       pinned: true,
       elevation: 0,
       scrolledUnderElevation: 4,
+      automaticallyImplyLeading: false,
       backgroundColor: theme.scaffoldBackgroundColor,
+      leading: IconButton(
+        icon: const Icon(Icons.notifications_none_rounded),
+        tooltip: 'Notifications',
+        onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
+      ),
+      leadingWidth: 48,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -170,33 +177,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: IconButton(
-            icon: StreamBuilder<List<NotificationItem>>(
-              stream: DatabaseService.instance.getUserNotificationsStream(AuthService.instance.currentUser?.uid ?? ''),
-              builder: (context, snapshot) {
-                final hasUnread = snapshot.hasData && snapshot.data!.any((n) => !n.isRead);
-                return Stack(
-                  children: [
-                    const Icon(Icons.notifications_rounded, size: 20),
-                    if (hasUnread)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            tooltip: 'Notifications',
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.notifications);
-            },
+            icon: const Icon(Icons.favorite_border_rounded, size: 20),
+            tooltip: 'Favorites',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.favorites),
           ),
         ),
         Container(
@@ -209,12 +192,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: IconButton(
-            icon: const Icon(Icons.search_rounded, size: 20),
-            tooltip: 'Search',
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.search),
+            icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+            tooltip: 'Wishlist',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.favorites),
           ),
         ),
-        const AppOptionsMenu(),
         const SizedBox(width: 8),
       ],
     );
@@ -692,8 +674,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          color: isFav ? AppColors.error : theme.colorScheme.onSurfaceVariant,
+                          isFav ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                          color: isFav ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                           size: 18,
                         ),
                       ),

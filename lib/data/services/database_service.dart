@@ -61,6 +61,15 @@ class DatabaseService {
     }
   }
 
+  Stream<UserModel?> getUserProfileStream(String userId) {
+    return _usersRef.doc(userId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    });
+  }
+
   Future<UserModel?> getUserProfileByUsername(String username) async {
     try {
       final snapshot = await _usersRef.where('username', isEqualTo: username).limit(1).get();
@@ -302,11 +311,12 @@ class DatabaseService {
     }
   }
 
-  Stream<List<Booking>> getUserBookingsStream(String userId) {
-    return _bookingsRef
-        .where('buyerId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
+  Stream<List<Booking>> getUserBookingsStream(String userId, {String? type}) {
+    var query = _bookingsRef.where('buyerId', isEqualTo: userId);
+    if (type != null) {
+      query = query.where('type', isEqualTo: type);
+    }
+    return query.snapshots().map((snapshot) {
       final list = snapshot.docs.map((doc) {
         return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
@@ -315,12 +325,16 @@ class DatabaseService {
     });
   }
 
-  Stream<List<Booking>> getIncomingRequestsStream(String sellerId) {
-    return _bookingsRef
+  Stream<List<Booking>> getIncomingRequestsStream(String sellerId, {String? type}) {
+    var query = _bookingsRef
         .where('sellerId', isEqualTo: sellerId)
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snapshot) {
+        .where('status', isEqualTo: 'pending');
+        
+    if (type != null) {
+      query = query.where('type', isEqualTo: type);
+    }
+        
+    return query.snapshots().map((snapshot) {
       final list = snapshot.docs.map((doc) {
         return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
@@ -359,6 +373,35 @@ class DatabaseService {
       return 0;
     }
   }
+
+  Future<bool> hasSuccessfulTransaction(String buyerId, String sellerId) async {
+    try {
+      final snapshot = await _bookingsRef
+          .where('buyerId', isEqualTo: buyerId)
+          .where('sellerId', isEqualTo: sellerId)
+          .where('status', isEqualTo: 'accepted')
+          .limit(1)
+          .get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> hasSuccessfulBookTransaction(String buyerId, String bookId) async {
+    try {
+      final snapshot = await _bookingsRef
+          .where('buyerId', isEqualTo: buyerId)
+          .where('bookId', isEqualTo: bookId)
+          .where('status', isEqualTo: 'accepted')
+          .limit(1)
+          .get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
 
   // ---------------------------------------------------------------------------
   // Notifications CRUD Operations

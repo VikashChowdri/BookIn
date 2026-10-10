@@ -20,7 +20,8 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/profile/public_profile_screen.dart';
 import '../screens/search/search_results_screen.dart';
 import '../screens/search/search_screen.dart';
-import '../screens/booking/my_bookings_screen.dart';
+import '../screens/booking/my_rentals_screen.dart';
+import '../screens/booking/my_purchases_screen.dart';
 import '../screens/booking/booking_confirmation_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/booking/incoming_requests_screen.dart';
@@ -47,8 +48,10 @@ class AppRoutes {
   static const String addBook = '/add-book';
   static const String editBook = '/edit-book';
   static const String myListings = '/my-listings';
-  static const String myBookings = '/my-bookings';
-  static const String incomingRequests = '/incoming-requests';
+  static const String myRentals = '/my-rentals';
+  static const String myPurchases = '/my-purchases';
+  static const String purchaseRequests = '/purchase-requests';
+  static const String rentalRequests = '/rental-requests';
   static const String bookingConfirmation = '/booking-confirmation';
   static const String notifications = '/notifications';
 
@@ -73,8 +76,10 @@ class AppRoutes {
         home: (context) => const MainScreen(),
         addBook: (context) => const AddEditBookScreen(),
         myListings: (context) => const MyListingsScreen(),
-        myBookings: (context) => const MyBookingsScreen(),
-        incomingRequests: (context) => const IncomingRequestsScreen(),
+        myRentals: (context) => const MyRentalsScreen(),
+        myPurchases: (context) => const MyPurchasesScreen(),
+        purchaseRequests: (context) => const IncomingRequestsScreen(title: 'Buyer Requests', type: 'purchase'),
+        rentalRequests: (context) => const IncomingRequestsScreen(title: 'Rental Requests', type: 'rental'),
         notifications: (context) => const NotificationsScreen(),
 
         // Member 3: Search & Discovery — Real Screens

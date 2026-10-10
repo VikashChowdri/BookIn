@@ -9,6 +9,7 @@ import '../../data/dummy_books.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
+import '../../utils/cart_manager.dart';
 import '../review/reviews_list_widget.dart';
 
 class BookDetailsScreen extends StatefulWidget {
@@ -80,6 +81,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     targetId: book.id,
                     targetType: 'book',
                     targetName: book.title,
+                    isOwnAsset: isOwner,
                   ),
                 ],
               ),
@@ -119,9 +121,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             child: IconButton(
               icon: Icon(
                 _isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                color: _isFavorite ? AppColors.error : Colors.white,
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: _isFavorite ? theme.colorScheme.primary : Colors.white,
               ),
               onPressed: () {
                 setState(() {
@@ -576,13 +578,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Price',
+                book.price > 0 ? 'Price' : 'Rent Price',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
-                '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}',
+                book.price > 0
+                    ? '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}'
+                    : '${AppConstants.defaultCurrencySymbol}${book.rentPrice.toStringAsFixed(0)}/day',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.primary,
@@ -593,29 +597,72 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
           const SizedBox(width: 20),
 
-          // Buy / Exchange button
+          // Action buttons
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: book.available
-                  ? () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => BookingDialog(book: book),
-                      );
-                    }
-                  : null,
-              icon: Icon(
-                book.available
-                    ? Icons.swap_horiz_rounded
-                    : Icons.block_rounded,
-                size: 20,
-              ),
-              label: Text(book.available ? 'Buy / Exchange' : 'Not Available'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(0, 50),
-                disabledBackgroundColor:
-                    theme.colorScheme.surfaceContainerHighest,
-              ),
+            child: Row(
+              children: [
+                if (book.price > 0)
+                  Expanded(
+                    child: ListenableBuilder(
+                      listenable: CartManager.instance,
+                      builder: (context, _) {
+                        final inCart = CartManager.instance.isInCart(book);
+                        return OutlinedButton.icon(
+                          onPressed: book.available
+                              ? () {
+                                  if (inCart) {
+                                    // Pop the details screen so they can click the Cart tab
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please use the Cart tab at the bottom to view your cart.'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  CartManager.instance.addToCart(book);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Added to Cart!'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              : null,
+                          icon: Icon(inCart ? Icons.shopping_cart_checkout_rounded : Icons.add_shopping_cart_rounded, size: 18),
+                          label: Text(inCart ? 'Go to Cart' : 'Add to Cart'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 50),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                if (book.price > 0 && book.rentPrice > 0)
+                  const SizedBox(width: 8),
+                if (book.rentPrice > 0) ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: book.available
+                          ? () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => BookingDialog(book: book),
+                              );
+                            }
+                          : null,
+                      icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                      label: const Text('Rent'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                        disabledBackgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

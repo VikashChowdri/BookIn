@@ -7,8 +7,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_constants.dart';
 import '../review/review_dialog.dart';
 
-class MyBookingsScreen extends StatelessWidget {
-  const MyBookingsScreen({super.key});
+class MyRentalsScreen extends StatelessWidget {
+  const MyRentalsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,12 +16,12 @@ class MyBookingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Bookings'),
+        title: const Text('My Rentals'),
       ),
       body: userId == null
           ? const Center(child: Text('Please log in to view your bookings.'))
           : StreamBuilder<List<Booking>>(
-              stream: DatabaseService.instance.getUserBookingsStream(userId),
+              stream: DatabaseService.instance.getUserBookingsStream(userId, type: 'rental'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -35,7 +35,7 @@ class MyBookingsScreen extends StatelessWidget {
 
                 if (bookings.isEmpty) {
                   return const Center(
-                    child: Text('You have no active bookings.'),
+                    child: Text('You have no active rentals.'),
                   );
                 }
 

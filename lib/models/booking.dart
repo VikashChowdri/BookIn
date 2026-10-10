@@ -10,8 +10,9 @@ class Booking {
   final DateTime startDate;
   final DateTime endDate;
   final double totalPrice;
-  final String status; // e.g., 'confirmed', 'cancelled', 'completed'
+  final String status; // e.g., 'pending', 'accepted', 'rejected', 'completed'
   final String type; // 'rental' or 'purchase'
+  final String? groupId; // Used to group bulk purchases
   final DateTime createdAt;
 
   Booking({
@@ -26,6 +27,7 @@ class Booking {
     required this.totalPrice,
     required this.status,
     required this.type,
+    this.groupId,
     required this.createdAt,
   });
 
@@ -41,6 +43,7 @@ class Booking {
       'totalPrice': totalPrice,
       'status': status,
       'type': type,
+      if (groupId != null) 'groupId': groupId,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -58,6 +61,7 @@ class Booking {
       totalPrice: (map['totalPrice'] ?? 0).toDouble(),
       status: map['status'] ?? 'pending',
       type: map['type'] ?? 'rental',
+      groupId: map['groupId'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
