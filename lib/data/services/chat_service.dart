@@ -32,6 +32,7 @@ class ChatService {
           currentUserId: 0,
           otherUserId: 0,
         },
+        'typing': [],
       });
     }
 
@@ -107,6 +108,46 @@ class ChatService {
     final roomDoc = _firestore.collection('chats').doc(roomId);
     await roomDoc.update({
       'unreadCounts.$currentUserId': 0,
+    });
+
+    // Mark messages as read
+    final unreadMessages = await roomDoc.collection('messages')
+        .where('senderId', isNotEqualTo: currentUserId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    final batch = _firestore.batch();
+    for (var doc in unreadMessages.docs) {
+      batch.update(doc.reference, {
+        'isRead': true,
+        'readAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  Future<void> updateTypingStatus(String roomId, bool isTyping) async {
+    final currentUserId = AuthService.instance.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    final roomDoc = _firestore.collection('chats').doc(roomId);
+    if (isTyping) {
+      await roomDoc.update({
+        'typing': FieldValue.arrayUnion([currentUserId])
+      });
+    } else {
+      await roomDoc.update({
+        'typing': FieldValue.arrayRemove([currentUserId])
+      });
+    }
+  }
+
+  Stream<ChatRoom?> getChatRoomStream(String roomId) {
+    return _firestore.collection('chats').doc(roomId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return ChatRoom.fromMap(doc.id, doc.data()!);
+      }
+      return null;
     });
   }
 }

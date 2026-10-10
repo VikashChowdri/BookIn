@@ -9,6 +9,8 @@ class Message {
   final String? attachedBookTitle;
   final String? attachedBookImageUrl;
   final String? chatImageUrl;
+  final bool isRead;
+  final DateTime? readAt;
 
   Message({
     required this.id,
@@ -19,6 +21,8 @@ class Message {
     this.attachedBookTitle,
     this.attachedBookImageUrl,
     this.chatImageUrl,
+    this.isRead = false,
+    this.readAt,
   });
 
   factory Message.fromMap(String id, Map<String, dynamic> data) {
@@ -31,6 +35,8 @@ class Message {
       attachedBookTitle: data['attachedBookTitle'],
       attachedBookImageUrl: data['attachedBookImageUrl'],
       chatImageUrl: data['chatImageUrl'],
+      isRead: data['isRead'] ?? false,
+      readAt: (data['readAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -43,6 +49,8 @@ class Message {
       if (attachedBookTitle != null) 'attachedBookTitle': attachedBookTitle,
       if (attachedBookImageUrl != null) 'attachedBookImageUrl': attachedBookImageUrl,
       if (chatImageUrl != null) 'chatImageUrl': chatImageUrl,
+      'isRead': isRead,
+      if (readAt != null) 'readAt': FieldValue.serverTimestamp(),
     };
   }
 }
