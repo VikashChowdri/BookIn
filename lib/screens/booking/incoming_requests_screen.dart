@@ -272,7 +272,7 @@ class _RequestCardState extends State<_RequestCard> {
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                     child: _isLoading
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Accept Sale'),
+                        : Text(widget.booking.type == 'rental' ? 'Accept Rental' : 'Accept Sale'),
                   ),
                 ] else if (widget.booking.status == 'accepted' || widget.booking.status == 'active') ...[
                   ElevatedButton.icon(
