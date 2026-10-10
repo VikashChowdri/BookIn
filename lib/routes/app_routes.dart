@@ -27,6 +27,7 @@ import '../screens/booking/booking_confirmation_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/booking/incoming_requests_screen.dart';
 import '../models/booking.dart';
+import '../models/book.dart';
 import '../screens/chat/chat_detail_screen.dart';
 
 class AppRoutes {
@@ -187,6 +188,7 @@ class AppRoutes {
           builder: (_) => ChatDetailScreen(
             roomId: args['roomId'] as String,
             otherUser: args['otherUser'] as UserModel,
+            contextBook: args['contextBook'] as Book?,
           ),
           settings: settings,
         );

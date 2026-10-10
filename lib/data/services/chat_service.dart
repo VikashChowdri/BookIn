@@ -68,9 +68,9 @@ class ChatService {
     });
   }
 
-  Future<void> sendMessage(String roomId, String otherUserId, String text) async {
+  Future<void> sendMessage(String roomId, String otherUserId, String text, {String? attachedBookId, String? attachedBookTitle, String? attachedBookImageUrl}) async {
     final currentUserId = AuthService.instance.currentUser?.uid;
-    if (currentUserId == null || text.trim().isEmpty) return;
+    if (currentUserId == null || (text.trim().isEmpty && attachedBookId == null)) return;
 
     final roomDoc = _firestore.collection('chats').doc(roomId);
     
@@ -79,11 +79,16 @@ class ChatService {
       'senderId': currentUserId,
       'text': text.trim(),
       'timestamp': FieldValue.serverTimestamp(),
+      if (attachedBookId != null) 'attachedBookId': attachedBookId,
+      if (attachedBookTitle != null) 'attachedBookTitle': attachedBookTitle,
+      if (attachedBookImageUrl != null) 'attachedBookImageUrl': attachedBookImageUrl,
     });
+
+    final lastMsgText = attachedBookTitle != null ? 'Shared a book: $attachedBookTitle' : text.trim();
 
     // Update room
     await roomDoc.update({
-      'lastMessage': text.trim(),
+      'lastMessage': lastMsgText,
       'lastMessageTime': FieldValue.serverTimestamp(),
       'unreadCounts.$otherUserId': FieldValue.increment(1),
     });

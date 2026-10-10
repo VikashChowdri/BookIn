@@ -522,6 +522,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     arguments: {
                       'roomId': roomId,
                       'otherUser': seller,
+                      'contextBook': book,
                     },
                   );
                 }
