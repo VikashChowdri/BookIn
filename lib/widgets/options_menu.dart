@@ -23,10 +23,10 @@ class AppOptionsMenu extends StatelessWidget {
             Navigator.pushNamed(context, AppRoutes.favorites);
             break;
           case MenuOption.myBookings:
-            Navigator.pushNamed(context, AppRoutes.myBookings);
+            Navigator.pushNamed(context, AppRoutes.myRentals);
             break;
           case MenuOption.incomingRequests:
-            Navigator.pushNamed(context, AppRoutes.incomingRequests);
+            Navigator.pushNamed(context, AppRoutes.purchaseRequests);
             break;
           case MenuOption.profile:
             Navigator.pushNamed(context, AppRoutes.profile);

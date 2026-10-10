@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../models/review.dart';
 import '../../data/services/database_service.dart';
+import '../../data/services/auth_service.dart';
 import 'review_dialog.dart';
 
 class ReviewsListWidget extends StatelessWidget {
   final String targetId;
   final String targetType;
   final String targetName;
+  final bool isOwnAsset;
 
   const ReviewsListWidget({
     super.key,
     required this.targetId,
     required this.targetType,
     required this.targetName,
+    this.isOwnAsset = false,
   });
 
   @override
@@ -63,20 +66,34 @@ class ReviewsListWidget extends StatelessWidget {
                 ),
               ],
             ),
-            TextButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => ReviewDialog(
-                    targetId: targetId,
-                    targetType: targetType,
-                    targetName: targetName,
-                  ),
-                );
-              },
-              icon: const Icon(Icons.edit_outlined, size: 16),
-              label: const Text('Leave a Review'),
-            ),
+            if (targetType == 'user')
+              FutureBuilder<bool>(
+                future: DatabaseService.instance.hasSuccessfulTransaction(
+                  AuthService.instance.currentUser?.uid ?? '',
+                  targetId,
+                ),
+                builder: (context, snapshot) {
+                  if (isOwnAsset) return const SizedBox.shrink();
+                  
+                  final hasTransaction = snapshot.data ?? false;
+                  if (!hasTransaction) return const SizedBox.shrink();
+
+                  return _buildReviewButton(context);
+                },
+              )
+            else if (!isOwnAsset)
+              FutureBuilder<bool>(
+                future: DatabaseService.instance.hasSuccessfulBookTransaction(
+                  AuthService.instance.currentUser?.uid ?? '',
+                  targetId,
+                ),
+                builder: (context, snapshot) {
+                  final hasTransaction = snapshot.data ?? false;
+                  if (!hasTransaction) return const SizedBox.shrink();
+
+                  return _buildReviewButton(context);
+                },
+              ),
           ],
         ),
         const SizedBox(height: 8),
@@ -96,7 +113,9 @@ class ReviewsListWidget extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'No reviews yet. Be the first to leave one!',
+                  isOwnAsset 
+                      ? 'No reviews yet.' 
+                      : 'No reviews yet. Be the first to leave one!',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,
@@ -143,6 +162,23 @@ class ReviewsListWidget extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildReviewButton(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (_) => ReviewDialog(
+            targetId: targetId,
+            targetType: targetType,
+            targetName: targetName,
+          ),
+        );
+      },
+      icon: const Icon(Icons.edit_outlined, size: 16),
+      label: const Text('Leave a Review'),
     );
   }
 }

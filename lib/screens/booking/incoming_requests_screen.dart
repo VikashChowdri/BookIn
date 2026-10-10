@@ -10,7 +10,14 @@ import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
 
 class IncomingRequestsScreen extends StatelessWidget {
-  const IncomingRequestsScreen({super.key});
+  final String title;
+  final String type;
+
+  const IncomingRequestsScreen({
+    super.key,
+    required this.title,
+    required this.type,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +25,12 @@ class IncomingRequestsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Incoming Requests'),
+        title: Text(title),
       ),
       body: userId == null
           ? const Center(child: Text('Please log in to view requests.'))
           : StreamBuilder<List<Booking>>(
-              stream: DatabaseService.instance.getIncomingRequestsStream(userId),
+              stream: DatabaseService.instance.getIncomingRequestsStream(userId, type: type),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

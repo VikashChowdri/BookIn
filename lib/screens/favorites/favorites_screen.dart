@@ -19,7 +19,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Favorites'),
+        title: const Text('Wishlist'),
         actions: const [
           AppOptionsMenu(),
         ],
@@ -29,12 +29,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.favorite_border, size: 64, color: Colors.grey[400]),
+                  Icon(Icons.bookmark_border_rounded, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 12),
-                  const Text('No favorites yet', style: TextStyle(fontSize: 16)),
+                  const Text('Your wishlist is empty', style: TextStyle(fontSize: 16)),
                   const SizedBox(height: 4),
                   const Text(
-                    'Books you favorite will show up here',
+                    'Books you add to your wishlist will show up here',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ],

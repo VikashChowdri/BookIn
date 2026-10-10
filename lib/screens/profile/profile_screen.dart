@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../models/user_model.dart';
+import '../../core/theme/theme_controller.dart';
 import '../../routes/app_routes.dart';
 import '../review/reviews_list_widget.dart';
 
@@ -56,7 +57,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('My Profile')),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('My Profile'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -70,6 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('My Profile'),
         actions: [
           IconButton(
@@ -164,16 +169,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.history_rounded),
-              title: const Text('Exchange History'),
+              leading: const Icon(Icons.shopping_bag_outlined),
+              title: const Text('My Purchases'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.myPurchases);
+              },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Settings'),
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('My Rentals'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.myRentals);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.inbox_outlined),
+              title: const Text('Buyer Requests'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.purchaseRequests);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.handshake_outlined),
+              title: const Text('Rental Requests'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.rentalRequests);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Change Theme'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                ThemeController.showThemeSelectionDialog(context);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),
@@ -188,6 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 targetId: user.uid,
                 targetType: 'user',
                 targetName: displayName,
+                isOwnAsset: true,
               ),
           ],
         ),

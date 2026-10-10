@@ -5,10 +5,11 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
-import '../home/home_screen.dart';
-import '../search/search_screen.dart';
-import '../notifications/notifications_screen.dart';
-import '../profile/profile_screen.dart';
+import 'home/home_screen.dart';
+import 'search/search_screen.dart';
+import 'notifications/notifications_screen.dart';
+import 'profile/profile_screen.dart';
+import 'cart/cart_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -24,7 +25,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const SearchScreen(),
     const SizedBox(), // Placeholder for Add button
-    const NotificationsScreen(),
+    const CartScreen(),
     const ProfileScreen(),
   ];
 
@@ -93,9 +94,10 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Add',
             ),
             BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 3 ? Icons.favorite_rounded : Icons.favorite_border_rounded),
-              label: 'Activity',
+              icon: Icon(_currentIndex == 3 ? Icons.shopping_bag : Icons.shopping_bag_outlined),
+              label: 'Cart',
             ),
+
             BottomNavigationBarItem(
               icon: StreamBuilder<UserModel?>(
                 stream: user != null ? DatabaseService.instance.getUserProfileStream(user.uid) : const Stream.empty(),
@@ -127,6 +129,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

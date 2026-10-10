@@ -56,6 +56,9 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
     'Other',
   ];
 
+  bool _offerForSale = true;
+  bool _offerForRent = false;
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +85,13 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
             ? book.department
             : null;
     _isAvailable = book?.available ?? true;
+    if (book != null) {
+      _offerForSale = book.price > 0;
+      _offerForRent = book.rentPrice > 0;
+      if (!_offerForSale && !_offerForRent) {
+        _offerForSale = true;
+      }
+    }
   }
 
   @override
@@ -99,6 +109,12 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
   bool _isLoading = false;
 
   Future<void> _saveBook() async {
+    if (!_offerForSale && !_offerForRent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one option: Sell or Rent')),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     
     setState(() { _isLoading = true; });
@@ -118,8 +134,8 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
         sellerName: AuthService.instance.currentUser?.displayName ?? 'User',
         sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
         available: _isAvailable,
-        price: double.tryParse(_priceController.text.trim()) ?? 0,
-        rentPrice: double.tryParse(_rentPriceController.text.trim()) ?? 0,
+        price: _offerForSale ? (double.tryParse(_priceController.text.trim()) ?? 0) : 0,
+        rentPrice: _offerForRent ? (double.tryParse(_rentPriceController.text.trim()) ?? 0) : 0,
         status: _isAvailable ? 'available' : widget.book?.status ?? 'sold',
       );
 
@@ -312,45 +328,69 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
 
               const SizedBox(height: 16),
 
-              // ── Price ──
-              _buildSectionLabel(theme, 'Price (${AppConstants.defaultCurrencySymbol}) *'),
+              _buildSectionLabel(theme, 'Selling Options *'),
               const SizedBox(height: 6),
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  hintText: 'e.g. 250',
-                  prefixIcon: Icon(Icons.currency_rupee_rounded),
-                ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Price is required';
-                  final price = double.tryParse(v.trim());
-                  if (price == null || price <= 0) {
-                    return 'Enter a valid price';
-                  }
-                  return null;
-                },
+              CheckboxListTile(
+                title: const Text('Offer for Sale'),
+                value: _offerForSale,
+                onChanged: (v) => setState(() => _offerForSale = v ?? false),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                activeColor: theme.colorScheme.primary,
               ),
-
-              const SizedBox(height: 16),
-
-              // ── Rent Price ──
-              _buildSectionLabel(theme, 'Rent Price (${AppConstants.defaultCurrencySymbol} per day) (Optional)'),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _rentPriceController,
-                decoration: const InputDecoration(
-                  hintText: 'e.g. 10 (Leave empty if not for rent)',
-                  prefixIcon: Icon(Icons.currency_rupee_rounded),
+              if (_offerForSale) ...[
+                TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    hintText: 'Selling Price (e.g. 250)',
+                    prefixIcon: Icon(Icons.currency_rupee_rounded),
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Price is required';
+                    final price = double.tryParse(v.trim());
+                    if (price == null || price <= 0) {
+                      return 'Enter a valid price';
+                    }
+                    return null;
+                  },
                 ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                const SizedBox(height: 16),
+              ],
+              
+              CheckboxListTile(
+                title: const Text('Offer for Rent'),
+                value: _offerForRent,
+                onChanged: (v) => setState(() => _offerForRent = v ?? false),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                activeColor: theme.colorScheme.primary,
               ),
+              if (_offerForRent) ...[
+                TextFormField(
+                  controller: _rentPriceController,
+                  decoration: const InputDecoration(
+                    hintText: 'Rent Price per day (e.g. 10)',
+                    prefixIcon: Icon(Icons.currency_rupee_rounded),
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Rent price is required';
+                    final price = double.tryParse(v.trim());
+                    if (price == null || price <= 0) {
+                      return 'Enter a valid rent price';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
 
               const SizedBox(height: 16),
 
