@@ -61,7 +61,7 @@ class _CartScreenState extends State<CartScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Checkout successful! Requests sent to sellers.')),
       );
-      Navigator.pushReplacementNamed(context, AppRoutes.myPurchases);
+      Navigator.pushNamed(context, AppRoutes.myPurchases);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
