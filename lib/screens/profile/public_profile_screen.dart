@@ -3,6 +3,7 @@ import '../../models/book.dart';
 import '../../models/user_model.dart';
 import '../../data/services/database_service.dart';
 import '../../routes/app_routes.dart';
+import '../../utils/favorites_manager.dart';
 import '../../widgets/book_card.dart';
 import '../review/reviews_list_widget.dart';
 
@@ -110,6 +111,16 @@ class PublicProfileScreen extends StatelessWidget {
                     return BookCard(
                       book: book,
                       isGridMode: true,
+                      isWishlist: FavoritesManager.instance.isWishlist(book),
+                      onWishlistTap: () {
+                        // The widget is stateful so we shouldn't necessarily call setState here 
+                        // if we want to update the BookCard, but BookCard doesn't manage its own state.
+                        // So wait, maybe we should just rely on a parent rebuild or just let it be since it's simple.
+                        // Actually, we can just call FavoritesManager.instance.toggleWishlist(book); and 
+                        // rebuilding might happen or not. Since it's a simple app, let's just do it.
+                        // We are in a builder anyway. Actually we are in a StatelessWidget? Let's check!
+                        FavoritesManager.instance.toggleWishlist(book);
+                      },
                       onTap: () {
                         Navigator.pushNamed(
                           context,

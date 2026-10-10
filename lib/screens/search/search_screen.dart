@@ -220,10 +220,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: BookCard(
                   book: book,
                   isGridMode: true,
-                  isFavorite: FavoritesManager.instance.isFavorite(book),
+                  isWishlist: FavoritesManager.instance.isWishlist(book),
                   onTap: () => _openBook(book),
-                  onFavoriteTap: () => setState(
-                      () => FavoritesManager.instance.toggleFavorite(book)),
+                  onWishlistTap: () => setState(
+                      () => FavoritesManager.instance.toggleWishlist(book)),
                 ),
               );
             },

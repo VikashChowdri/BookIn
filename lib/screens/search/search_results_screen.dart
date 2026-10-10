@@ -302,10 +302,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         return BookCard(
           book: book,
           isGridMode: true,
-          isFavorite: FavoritesManager.instance.isFavorite(book),
+          isWishlist: FavoritesManager.instance.isWishlist(book),
           onTap: () => _onBookTap(book),
-          onFavoriteTap: () => setState(
-              () => FavoritesManager.instance.toggleFavorite(book)),
+          onWishlistTap: () => setState(
+              () => FavoritesManager.instance.toggleWishlist(book)),
         );
       },
     );

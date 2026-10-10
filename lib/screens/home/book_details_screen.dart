@@ -25,6 +25,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Book get book => widget.book;
 
   bool get _isFavorite => FavoritesManager.instance.isFavorite(book);
+  bool get _isWishlist => FavoritesManager.instance.isWishlist(book);
 
   @override
   Widget build(BuildContext context) {
@@ -120,10 +121,29 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             backgroundColor: Colors.black.withValues(alpha: 0.4),
             child: IconButton(
               icon: Icon(
-                _isFavorite
+                _isWishlist
                     ? Icons.bookmark_rounded
                     : Icons.bookmark_border_rounded,
-                color: _isFavorite ? theme.colorScheme.primary : Colors.white,
+                color: _isWishlist ? theme.colorScheme.primary : Colors.white,
+              ),
+              onPressed: () {
+                setState(() {
+                  FavoritesManager.instance.toggleWishlist(book);
+                });
+              },
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: CircleAvatar(
+            backgroundColor: Colors.black.withValues(alpha: 0.4),
+            child: IconButton(
+              icon: Icon(
+                _isFavorite
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: _isFavorite ? AppColors.error : Colors.white,
               ),
               onPressed: () {
                 setState(() {
@@ -758,6 +778,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 // Remove from favorites if present
                 if (FavoritesManager.instance.isFavorite(book)) {
                   FavoritesManager.instance.toggleFavorite(book);
+                }
+                if (FavoritesManager.instance.isWishlist(book)) {
+                  FavoritesManager.instance.toggleWishlist(book);
                 }
 
                 if (!mounted) return;

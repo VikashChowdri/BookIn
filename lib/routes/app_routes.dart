@@ -9,6 +9,7 @@ import '../screens/auth/splash_screen.dart';
 import '../screens/auth/verification_screen.dart';
 import '../screens/common/placeholder_screen.dart';
 import '../screens/favorites/favorites_screen.dart';
+import '../screens/favorites/wishlist_screen.dart';
 import '../screens/home/add_edit_book_screen.dart';
 import '../screens/home/book_details_screen.dart';
 import '../screens/home/book_listing_screen.dart';
@@ -59,6 +60,7 @@ class AppRoutes {
   static const String search = '/search';
   static const String searchResults = '/search-results';
   static const String favorites = '/favorites';
+  static const String wishlist = '/wishlist';
 
   static Map<String, WidgetBuilder> get routes => {
         // Common
@@ -85,6 +87,7 @@ class AppRoutes {
         // Member 3: Search & Discovery — Real Screens
         search: (context) => const SearchScreen(),
         favorites: (context) => const FavoritesScreen(),
+        wishlist: (context) => const WishlistScreen(),
       };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {

@@ -381,6 +381,9 @@ class _MyListingsScreenState extends State<MyListingsScreen>
                 if (FavoritesManager.instance.isFavorite(book)) {
                   FavoritesManager.instance.toggleFavorite(book);
                 }
+                if (FavoritesManager.instance.isWishlist(book)) {
+                  FavoritesManager.instance.toggleWishlist(book);
+                }
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
