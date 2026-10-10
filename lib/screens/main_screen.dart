@@ -10,7 +10,7 @@ import 'search/search_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'profile/profile_screen.dart';
 import 'cart/cart_screen.dart';
-import 'common/placeholder_screen.dart';
+import 'chat/chat_list_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -26,7 +26,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const SearchScreen(),
     const SizedBox(), // Placeholder for Add button
-    const PlaceholderScreen(title: 'Messages', icon: Icons.chat_bubble_outline_rounded, subtitle: 'Chat functionality coming soon.'),
+    const ChatListScreen(),
     const CartScreen(),
     const ProfileScreen(),
   ];

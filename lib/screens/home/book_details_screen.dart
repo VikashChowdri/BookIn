@@ -11,6 +11,7 @@ import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
 import '../../utils/cart_manager.dart';
 import '../review/reviews_list_widget.dart';
+import '../../data/services/chat_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
@@ -503,14 +504,35 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
           // Message button
           FilledButton.tonalIcon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Messaging coming soon!'),
-                  duration: Duration(seconds: 1),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+            onPressed: () async {
+              final currentUserId = AuthService.instance.currentUser?.uid;
+              if (currentUserId == null || currentUserId == book.sellerId) return;
+
+              showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+              try {
+                final seller = await DatabaseService.instance.getUserProfile(book.sellerId);
+                if (seller == null) throw Exception('Seller not found');
+
+                final roomId = await ChatService.instance.getOrCreateChatRoom(seller.id);
+                if (context.mounted) {
+                  Navigator.pop(context); // pop loading
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.chatDetail,
+                    arguments: {
+                      'roomId': roomId,
+                      'otherUser': seller,
+                    },
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context); // pop loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error starting chat: $e')),
+                  );
+                }
+              }
             },
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
             label: const Text('Message'),
