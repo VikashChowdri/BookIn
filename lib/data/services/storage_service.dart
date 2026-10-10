@@ -14,7 +14,7 @@ class StorageService {
 
   /// Picks an image from the gallery and uploads it to Firebase Storage.
   /// Returns the download URL if successful, or null if cancelled or failed.
-  Future<String?> pickAndUploadProfilePicture(String userId) async {
+  Future<String?> pickAndUploadProfilePicture(BuildContext context, String userId) async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -40,18 +40,6 @@ class StorageService {
             title: 'Crop Profile Picture',
             aspectRatioLockEnabled: true,
             resetAspectRatioEnabled: false,
-          ),
-          WebUiSettings(
-            context: context, // Web needs context but we don't have it here...
-            presentStyle: CropperPresentStyle.dialog,
-            boundary: const CroppieBoundary(
-              width: 520,
-              height: 520,
-            ),
-            viewPort: const CroppieViewPort(width: 480, height: 480, type: 'circle'),
-            enableExif: true,
-            enableZoom: true,
-            showZoomer: true,
           ),
         ],
       );
