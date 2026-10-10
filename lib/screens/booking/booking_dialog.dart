@@ -21,6 +21,13 @@ class _BookingDialogState extends State<BookingDialog> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
+  late String _bookingType; // 'purchase' or 'rental'
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingType = widget.book.rentPrice > 0 ? 'rental' : 'purchase';
+  }
 
   void _pickDates() async {
     final now = DateTime.now();
@@ -42,11 +49,19 @@ class _BookingDialogState extends State<BookingDialog> {
   }
 
   double get _totalPrice {
-    return widget.book.price; // Fixed price for purchasing/booking
+    if (_bookingType == 'purchase') {
+      return widget.book.price;
+    } else {
+      if (_startDate != null && _endDate != null) {
+        final days = _endDate!.difference(_startDate!).inDays;
+        return widget.book.rentPrice * (days > 0 ? days : 1);
+      }
+      return 0;
+    }
   }
 
   void _confirmBooking() async {
-    if (_startDate == null || _endDate == null) {
+    if (_bookingType == 'rental' && (_startDate == null || _endDate == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select rental dates')),
       );
@@ -66,10 +81,11 @@ class _BookingDialogState extends State<BookingDialog> {
         bookImageUrl: widget.book.imageUrl,
         buyerId: buyerId,
         sellerId: widget.book.sellerId,
-        startDate: _startDate!,
-        endDate: _endDate!,
+        startDate: _startDate ?? DateTime.now(),
+        endDate: _endDate ?? DateTime.now(),
         totalPrice: _totalPrice,
         status: 'pending',
+        type: _bookingType,
         createdAt: DateTime.now(),
       );
 
@@ -110,17 +126,33 @@ class _BookingDialogState extends State<BookingDialog> {
         children: [
           Text(widget.book.title, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.date_range),
-            title: const Text('Select Dates'),
-            subtitle: Text(
-              _startDate != null && _endDate != null
-                  ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year} - ${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                  : 'Tap to select',
+          if (widget.book.rentPrice > 0) ...[
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'purchase', label: Text('Buy')),
+                ButtonSegment(value: 'rental', label: Text('Rent')),
+              ],
+              selected: {_bookingType},
+              onSelectionChanged: (Set<String> newSelection) {
+                setState(() {
+                  _bookingType = newSelection.first;
+                });
+              },
             ),
-            onTap: _pickDates,
-          ),
+            const SizedBox(height: 16),
+          ],
+          if (_bookingType == 'rental')
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.date_range),
+              title: const Text('Select Dates'),
+              subtitle: Text(
+                _startDate != null && _endDate != null
+                    ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year} - ${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                    : 'Tap to select',
+              ),
+              onTap: _pickDates,
+            ),
           const Divider(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

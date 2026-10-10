@@ -11,6 +11,7 @@ class Booking {
   final DateTime endDate;
   final double totalPrice;
   final String status; // e.g., 'confirmed', 'cancelled', 'completed'
+  final String type; // 'rental' or 'purchase'
   final DateTime createdAt;
 
   Booking({
@@ -24,6 +25,7 @@ class Booking {
     required this.endDate,
     required this.totalPrice,
     required this.status,
+    required this.type,
     required this.createdAt,
   });
 
@@ -38,6 +40,7 @@ class Booking {
       'endDate': Timestamp.fromDate(endDate),
       'totalPrice': totalPrice,
       'status': status,
+      'type': type,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -54,6 +57,7 @@ class Booking {
       endDate: (map['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       totalPrice: (map['totalPrice'] ?? 0).toDouble(),
       status: map['status'] ?? 'pending',
+      type: map['type'] ?? 'rental',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

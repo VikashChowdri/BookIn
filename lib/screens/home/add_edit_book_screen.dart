@@ -24,6 +24,7 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
   late final TextEditingController _authorController;
   late final TextEditingController _subjectController;
   late final TextEditingController _priceController;
+  late final TextEditingController _rentPriceController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _imageUrlController;
 
@@ -65,6 +66,9 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
     _priceController = TextEditingController(
       text: book != null ? book.price.toStringAsFixed(0) : '',
     );
+    _rentPriceController = TextEditingController(
+      text: book != null && book.rentPrice > 0 ? book.rentPrice.toStringAsFixed(0) : '',
+    );
     _descriptionController =
         TextEditingController(text: book?.description ?? '');
     _imageUrlController =
@@ -86,6 +90,7 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
     _authorController.dispose();
     _subjectController.dispose();
     _priceController.dispose();
+    _rentPriceController.dispose();
     _descriptionController.dispose();
     _imageUrlController.dispose();
     super.dispose();
@@ -114,6 +119,8 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
         sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
         available: _isAvailable,
         price: double.tryParse(_priceController.text.trim()) ?? 0,
+        rentPrice: double.tryParse(_rentPriceController.text.trim()) ?? 0,
+        status: _isAvailable ? 'available' : widget.book?.status ?? 'sold',
       );
 
       if (_isEditMode) {
@@ -326,6 +333,23 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
                   }
                   return null;
                 },
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Rent Price ──
+              _buildSectionLabel(theme, 'Rent Price (${AppConstants.defaultCurrencySymbol} per day) (Optional)'),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _rentPriceController,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. 10 (Leave empty if not for rent)',
+                  prefixIcon: Icon(Icons.currency_rupee_rounded),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
               ),
 
               const SizedBox(height: 16),

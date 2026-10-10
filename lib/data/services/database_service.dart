@@ -247,7 +247,7 @@ class DatabaseService {
       await docRef.set(newBooking.toMap());
       
       // Optionally mark book as unavailable while pending
-      await updateBookAvailability(booking.bookId, false);
+      await _booksRef.doc(booking.bookId).update({'available': false});
 
       // Create a notification for the seller
       if (booking.buyerId != booking.sellerId) {
@@ -396,7 +396,15 @@ class DatabaseService {
 
       // 2. If rejected, make the book available again
       if (!accept) {
-        await updateBookAvailability(bookId, true);
+        await _booksRef.doc(bookId).update({'available': true, 'status': 'available'});
+      } else {
+        // If accepted, fetch booking type to update book status appropriately
+        final bookingDoc = await _bookingsRef.doc(bookingId).get();
+        if (bookingDoc.exists) {
+          final type = bookingDoc.data()?['type'] as String? ?? 'purchase';
+          final newBookStatus = type == 'rental' ? 'rented' : 'sold';
+          await _booksRef.doc(bookId).update({'status': newBookStatus});
+        }
       }
 
       // 3. Send a notification to the buyer

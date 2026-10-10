@@ -11,6 +11,8 @@ class Book {
   final String sellerId;
   final bool available;
   final double price;
+  final double rentPrice;
+  final String status; // 'available', 'rented', 'sold'
 
   Book({
     required this.id,
@@ -25,6 +27,8 @@ class Book {
     required this.sellerId,
     required this.available,
     required this.price,
+    this.rentPrice = 0.0,
+    this.status = 'available',
   });
 
   Map<String, dynamic> toMap() {
@@ -41,6 +45,8 @@ class Book {
       'sellerId': sellerId,
       'available': available,
       'price': price,
+      'rentPrice': rentPrice,
+      'status': status,
     };
   }
 
@@ -58,6 +64,8 @@ class Book {
       sellerId: map['sellerId'] ?? '',
       available: map['available'] ?? true,
       price: (map['price'] ?? 0.0).toDouble(),
+      rentPrice: (map['rentPrice'] ?? 0.0).toDouble(),
+      status: map['status'] ?? (map['available'] == false ? 'sold' : 'available'),
     );
   }
 
@@ -74,6 +82,8 @@ class Book {
     String? sellerId,
     bool? available,
     double? price,
+    double? rentPrice,
+    String? status,
   }) {
     return Book(
       id: id ?? this.id,
@@ -88,6 +98,8 @@ class Book {
       sellerId: sellerId ?? this.sellerId,
       available: available ?? this.available,
       price: price ?? this.price,
+      rentPrice: rentPrice ?? this.rentPrice,
+      status: status ?? this.status,
     );
   }
 }

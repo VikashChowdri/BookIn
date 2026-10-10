@@ -183,7 +183,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             Positioned(
               bottom: 16,
               left: 20,
-              child: _availabilityBadge(book.available),
+              child: _availabilityBadge(book.available, book.status),
             ),
           ],
         ),
@@ -333,7 +333,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 ? Icons.check_circle_outline_rounded
                 : Icons.cancel_outlined,
             'Status',
-            book.available ? 'Available' : 'Sold',
+            book.available 
+                ? 'Available' 
+                : (book.status == 'rented' ? 'Rented' : 'Sold'),
           ),
         ],
       ),
@@ -720,7 +722,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   // ─────────────────────────── Availability Badge ─────────────────────────
 
-  Widget _availabilityBadge(bool available) {
+  Widget _availabilityBadge(bool available, String status) {
+    String text = 'Available';
+    if (!available) {
+      text = status == 'rented' ? 'Rented' : 'Sold Out';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -741,7 +748,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           ),
           const SizedBox(width: 4),
           Text(
-            available ? 'Available' : 'Sold Out',
+            text,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
