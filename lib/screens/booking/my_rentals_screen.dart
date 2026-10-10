@@ -97,7 +97,16 @@ class _BookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isCancelled = booking.status == 'cancelled';
+    final normStatus = booking.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+    final isCancelled = normStatus == 'cancelled';
+    final isPending = normStatus == 'pending' || normStatus.isEmpty;
+    final isAccepted = normStatus == 'accepted';
+    final isActive = normStatus == 'active';
+    final isCompleted = normStatus == 'completed';
+
+    final Color statusColor = isPending
+        ? Colors.orange
+        : (isAccepted || isActive || isCompleted ? Colors.green : Colors.red);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -115,7 +124,7 @@ class _BookingCard extends StatelessWidget {
                 child: CachedNetworkImage(
                   imageUrl: AppConstants.getBookCover(booking.bookImageUrl, booking.bookId),
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => const Icon(Icons.book),
+                  errorWidget: (context, url, error) => const Icon(Icons.book),
                 ),
               ),
             ),
@@ -142,26 +151,22 @@ class _BookingCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: booking.status == 'pending' 
-                          ? Colors.orange.withValues(alpha: 0.1)
-                          : (booking.status == 'accepted' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1)),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      booking.status.toUpperCase(),
+                      normStatus.isEmpty ? 'PENDING' : normStatus.toUpperCase(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: booking.status == 'pending' 
-                            ? Colors.orange
-                            : (booking.status == 'accepted' ? Colors.green : Colors.red),
+                        color: statusColor,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            if (!isCancelled && booking.status == 'pending')
+            if (!isCancelled && isPending)
               IconButton(
                 icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                 tooltip: 'Cancel Booking',
@@ -170,7 +175,7 @@ class _BookingCard extends StatelessWidget {
             IconButton(
               icon: Icon(
                 Icons.confirmation_num_outlined,
-                color: (booking.status == 'accepted' || booking.status == 'active') ? theme.colorScheme.primary : Colors.grey,
+                color: (isAccepted || isActive || isCompleted) ? theme.colorScheme.primary : Colors.grey,
               ),
               tooltip: 'Show Ticket',
               onPressed: () {
@@ -182,7 +187,7 @@ class _BookingCard extends StatelessWidget {
                 );
               },
             ),
-            if (booking.status == 'accepted')
+            if (isAccepted || isActive || isCompleted)
               PopupMenuButton<String>(
                 icon: const Icon(Icons.rate_review_outlined),
                 tooltip: 'Leave Review',

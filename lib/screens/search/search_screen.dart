@@ -9,16 +9,6 @@ import '../../utils/favorites_manager.dart';
 import '../../widgets/book_card.dart';
 import 'search_widgets.dart';
  
-/// One tappable chip under "You Might Want To Search".
-class _Topic {
-  final String label;
-  final String? query;
-  final String? category;
-  final String? department;
-  final bool hot;
-  const _Topic(this.label,
-      {this.query, this.category, this.department, this.hot = false});
-}
  
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -35,7 +25,6 @@ class _SearchScreenState extends State<SearchScreen> {
   String get _text => _controller.text.trim();
   
   List<Book> _allBooks = [];
-  List<_Topic> _cachedTopics = [];
   List<Book> _cachedTrending = [];
   List<Book> _cachedRecommended = [];
   StreamSubscription<List<Book>>? _booksSub;
@@ -54,27 +43,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _updateCachedData() {
-    // Cache Topics
-    final counts = <String, int>{};
-    for (final b in _allBooks) {
-      for (final k in [b.subject, b.category, b.department]) {
-        counts[k] = (counts[k] ?? 0) + 1;
-      }
-    }
-    final ranked = counts.entries.where((e) => e.value >= 2).toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final hotLabels = ranked.take(3).map((e) => e.key).toSet();
- 
-    final all = <_Topic>[
-      for (final s in _allBooks.map((b) => b.subject).toSet())
-        _Topic(s, query: s, hot: hotLabels.contains(s)),
-      for (final c in _allBooks.map((b) => b.category).toSet())
-        _Topic(c, category: c, hot: hotLabels.contains(c)),
-      for (final d in _allBooks.map((b) => b.department).toSet())
-        _Topic(d, department: d, hot: hotLabels.contains(d)),
-    ];
-    _cachedTopics = [...all.where((t) => t.hot), ...all.where((t) => !t.hot)];
-
     // Cache Trending
     _cachedTrending = _allBooks.where((b) => b.available).take(6).toList();
 
@@ -177,23 +145,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ],
           ),
         ],
-        const SectionTitle('You Might Want To Search'),
-        Wrap(
-          spacing: 10,
-          runSpacing: 12,
-          children: [
-            for (final t in _cachedTopics)
-              PillChip(
-                label: t.label,
-                hot: t.hot,
-                onTap: () => _go(
-                  query: t.query ?? '',
-                  category: t.category,
-                  department: t.department,
-                ),
-              ),
-          ],
-        ),
+
         if (hasHistory) _shelf('Recommended For You', _cachedRecommended),
         _shelf('Trending Now', _cachedTrending),
       ],

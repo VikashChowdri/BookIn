@@ -114,7 +114,7 @@ class AppOptionsMenu extends StatelessWidget {
       ),
       children: const [
         Text(
-          'BookIn is a mobile book exchange platform for college students to buy, sell, and exchange course books easily.',
+          'BookIn is a mobile book platform for college students to buy, sell, and rent course books easily.',
         ),
       ],
     );

@@ -103,7 +103,7 @@ class MyPurchasesScreen extends StatelessWidget {
                                 IconButton(
                                   icon: Icon(
                                     Icons.confirmation_num_outlined,
-                                    color: (booking.status == 'accepted' || booking.status == 'active') ? theme.colorScheme.primary : Colors.grey,
+                                    color: (booking.status == 'accepted' || booking.status == 'active' || booking.status == 'completed') ? theme.colorScheme.primary : Colors.grey,
                                   ),
                                   onPressed: () {
                                     Navigator.push(
