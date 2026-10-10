@@ -9,6 +9,7 @@ import '../../data/dummy_books.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
+import '../../utils/cart_manager.dart';
 import '../review/reviews_list_widget.dart';
 
 class BookDetailsScreen extends StatefulWidget {
@@ -593,29 +594,59 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
           const SizedBox(width: 20),
 
-          // Buy / Exchange button
+          // Action buttons
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: book.available
-                  ? () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => BookingDialog(book: book),
-                      );
-                    }
-                  : null,
-              icon: Icon(
-                book.available
-                    ? Icons.swap_horiz_rounded
-                    : Icons.block_rounded,
-                size: 20,
-              ),
-              label: Text(book.available ? 'Buy / Exchange' : 'Not Available'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(0, 50),
-                disabledBackgroundColor:
-                    theme.colorScheme.surfaceContainerHighest,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: book.available
+                        ? () {
+                            if (CartManager.instance.isInCart(book)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Already in cart!')),
+                              );
+                              return;
+                            }
+                            CartManager.instance.addToCart(book);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Added to Cart!'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        : null,
+                    icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                    label: const Text('Add to Cart'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 50),
+                    ),
+                  ),
+                ),
+                if (book.rentPrice > 0) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: book.available
+                          ? () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => BookingDialog(book: book),
+                              );
+                            }
+                          : null,
+                      icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                      label: const Text('Rent'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                        disabledBackgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
