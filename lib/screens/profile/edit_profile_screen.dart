@@ -186,7 +186,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     
     setState(() => _isUploadingImage = true);
     try {
-      final newUrl = await StorageService.instance.pickAndUploadProfilePicture(_userModel!.id);
+      final newUrl = await StorageService.instance.pickAndUploadProfilePicture(context, _userModel!.id);
       if (newUrl != null) {
         setState(() {
           _userModel = _userModel!.copyWith(profilePictureUrl: newUrl);
