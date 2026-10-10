@@ -6,6 +6,8 @@ import '../../data/services/database_service.dart';
 import '../../core/constants/app_colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_constants.dart';
+import '../../models/user_model.dart';
+import '../../routes/app_routes.dart';
 
 class IncomingRequestsScreen extends StatelessWidget {
   const IncomingRequestsScreen({super.key});
@@ -64,6 +66,38 @@ class _RequestCard extends StatefulWidget {
 
 class _RequestCardState extends State<_RequestCard> {
   bool _isLoading = false;
+
+  Future<void> _showConfirmationDialog(bool accept) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(accept ? 'Accept Request?' : 'Reject Request?'),
+          content: Text(accept
+              ? 'Are you sure you want to accept this booking request? The book will be marked as sold.'
+              : 'Are you sure you want to reject this request? The book will remain available.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accept ? Colors.green : Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(accept ? 'Yes, Accept' : 'Yes, Reject'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      _handleRequest(accept);
+    }
+  }
 
   void _handleRequest(bool accept) async {
     setState(() => _isLoading = true);
@@ -147,12 +181,59 @@ class _RequestCardState extends State<_RequestCard> {
                         widget.booking.bookTitle,
                         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Buyer ID: ${widget.booking.buyerId.substring(0, 5)}...',
-                        style: theme.textTheme.bodyMedium,
+                      const SizedBox(height: 8),
+                      // Buyer Profile Section
+                      FutureBuilder<UserModel?>(
+                        future: DatabaseService.instance.getUserProfile(widget.booking.buyerId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2));
+                          }
+                          final buyer = snapshot.data;
+                          if (buyer == null) {
+                            return Text('Unknown Buyer', style: theme.textTheme.bodyMedium);
+                          }
+                          return InkWell(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.publicProfile,
+                                arguments: buyer,
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: theme.colorScheme.primary,
+                                  backgroundImage: buyer.profilePictureUrl.isNotEmpty && !buyer.profilePictureUrl.contains('unsplash')
+                                      ? NetworkImage(buyer.profilePictureUrl)
+                                      : null,
+                                  child: buyer.profilePictureUrl.isEmpty || buyer.profilePictureUrl.contains('unsplash')
+                                      ? Text(
+                                          buyer.publicName.isNotEmpty ? buyer.publicName[0].toUpperCase() : 'U',
+                                          style: TextStyle(fontSize: 10, color: theme.colorScheme.onPrimary),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${buyer.publicName} (@${buyer.username})',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         'Dates: ${widget.booking.startDate.day}/${widget.booking.startDate.month} - ${widget.booking.endDate.day}/${widget.booking.endDate.month}',
                         style: theme.textTheme.bodyMedium,
@@ -172,13 +253,13 @@ class _RequestCardState extends State<_RequestCard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
-                  onPressed: _isLoading ? null : () => _handleRequest(false),
+                  onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
                   style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
                   child: const Text('Reject'),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : () => _handleRequest(true),
+                  onPressed: _isLoading ? null : () => _showConfirmationDialog(true),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                   child: _isLoading
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))

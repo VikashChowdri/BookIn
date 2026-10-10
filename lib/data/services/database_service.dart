@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/book.dart';
 import '../../models/booking.dart';
 import '../../models/notification_item.dart';
+import '../../models/user_model.dart';
 import '../../core/constants/app_constants.dart';
 
 class DatabaseService {
@@ -17,6 +18,111 @@ class DatabaseService {
       _firestore.collection(AppConstants.bookingsCollection);
   CollectionReference get _notificationsRef =>
       _firestore.collection(AppConstants.notificationsCollection);
+  CollectionReference get _usersRef =>
+      _firestore.collection(AppConstants.usersCollection);
+
+  // ---------------------------------------------------------------------------
+  // User Profile CRUD Operations
+  // ---------------------------------------------------------------------------
+
+  Future<bool> isUsernameAvailable(String username) async {
+    final snapshot = await _usersRef.where('username', isEqualTo: username).get();
+    return snapshot.docs.isEmpty;
+  }
+
+  Future<void> createUserProfile(UserModel user) async {
+    try {
+      await _usersRef.doc(user.id).set(user.toMap());
+    } catch (e) {
+      throw Exception('Failed to create user profile: $e');
+    }
+  }
+
+  Future<void> updateUserProfile(UserModel user) async {
+    try {
+      await _usersRef.doc(user.id).update(user.toMap());
+    } catch (e) {
+      throw Exception('Failed to update user profile: $e');
+    }
+  }
+
+  Future<UserModel?> getUserProfile(String userId) async {
+    try {
+      final doc = await _usersRef.doc(userId).get();
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch user profile: $e');
+    }
+  }
+
+  Future<UserModel?> getUserProfileByUsername(String username) async {
+    try {
+      final snapshot = await _usersRef.where('username', isEqualTo: username).limit(1).get();
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch user profile by username: $e');
+    }
+  }
+
+  Future<List<UserModel>> searchUsers(String query) async {
+    try {
+      final snapshot = await _usersRef.get();
+      final allUsers = snapshot.docs.map((doc) =>
+        UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)
+      ).toList();
+
+      final lowercaseQuery = query.toLowerCase();
+      return allUsers.where((user) =>
+        user.username.toLowerCase().contains(lowercaseQuery) ||
+        user.publicName.toLowerCase().contains(lowercaseQuery)
+      ).toList();
+    } catch (e) {
+      throw Exception('Failed to search users: $e');
+    }
+  }
+
+  Future<void> deleteUserData(String userId) async {
+    try {
+      final batch = _firestore.batch();
+      
+      // Delete user's books
+      final booksSnapshot = await _booksRef.where('sellerId', isEqualTo: userId).get();
+      for (var doc in booksSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // Delete user's bookings (as buyer or seller)
+      final buyerBookingsSnapshot = await _bookingsRef.where('buyerId', isEqualTo: userId).get();
+      for (var doc in buyerBookingsSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      final sellerBookingsSnapshot = await _bookingsRef.where('sellerId', isEqualTo: userId).get();
+      for (var doc in sellerBookingsSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // Delete user's notifications
+      final notificationsSnapshot = await _notificationsRef.where('userId', isEqualTo: userId).get();
+      for (var doc in notificationsSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // Delete user's profile document
+      batch.delete(_usersRef.doc(userId));
+      
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to delete user data: $e');
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Books CRUD Operations
@@ -241,6 +347,27 @@ class DatabaseService {
       await _notificationsRef.doc(notificationId).update({'isRead': true});
     } catch (e) {
       throw Exception('Failed to mark notification as read: $e');
+    }
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _notificationsRef.doc(notificationId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete notification: $e');
+    }
+  }
+
+  Future<void> clearAllNotifications(String userId) async {
+    try {
+      final snapshot = await _notificationsRef.where('userId', isEqualTo: userId).get();
+      final batch = _firestore.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to clear notifications: $e');
     }
   }
 

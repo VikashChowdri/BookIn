@@ -20,15 +20,43 @@ class BookExchangeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
+    return ValueListenableBuilder<AppThemeType>(
       valueListenable: ThemeController.themeModeNotifier,
-      builder: (context, currentThemeMode, _) {
+      builder: (context, currentThemeType, _) {
+        ThemeData theme;
+        ThemeData darkTheme;
+        ThemeMode themeMode;
+
+        switch (currentThemeType) {
+          case AppThemeType.student:
+            theme = AppTheme.studentTheme;
+            darkTheme = AppTheme.studentTheme;
+            themeMode = ThemeMode.light;
+            break;
+          case AppThemeType.light:
+            theme = AppTheme.lightTheme;
+            darkTheme = AppTheme.lightTheme; // fallback
+            themeMode = ThemeMode.light;
+            break;
+          case AppThemeType.dark:
+            theme = AppTheme.darkTheme; // fallback
+            darkTheme = AppTheme.darkTheme;
+            themeMode = ThemeMode.dark;
+            break;
+          case AppThemeType.system:
+          default:
+            theme = AppTheme.lightTheme;
+            darkTheme = AppTheme.darkTheme;
+            themeMode = ThemeMode.system;
+            break;
+        }
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: AppConstants.appName,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: currentThemeMode,
+          theme: theme,
+          darkTheme: darkTheme,
+          themeMode: themeMode,
           scaffoldMessengerKey: scaffoldMessengerKey,
           initialRoute: AppRoutes.splash,
           onGenerateRoute: AppRoutes.onGenerateRoute,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/database_service.dart';
 import '../../models/book.dart';
+import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
 import '../../widgets/book_card.dart';
@@ -243,6 +244,53 @@ class _SearchScreenState extends State<SearchScreen> {
           title: Text('Search "$_text"'),
           onTap: () => _go(query: _text),
         ),
+        FutureBuilder<List<UserModel>>(
+          future: DatabaseService.instance.searchUsers(_text),
+          builder: (context, snapshot) {
+            final users = snapshot.data ?? [];
+            if (users.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('People', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                ),
+                for (final user in users.take(3))
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      backgroundImage: user.profilePictureUrl.isNotEmpty && 
+                              !user.profilePictureUrl.contains('unsplash')
+                          ? NetworkImage(user.profilePictureUrl)
+                          : null,
+                      child: user.profilePictureUrl.isEmpty || user.profilePictureUrl.contains('unsplash')
+                          ? Text(
+                              user.publicName.isNotEmpty ? user.publicName[0].toUpperCase() : 'U',
+                              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                            )
+                          : null,
+                    ),
+                    title: Text(user.publicName),
+                    subtitle: Text('@${user.username}'),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.publicProfile,
+                        arguments: user,
+                      );
+                    },
+                  ),
+                const Divider(),
+              ],
+            );
+          },
+        ),
+        if (items.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('Books', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          ),
         for (final book in items)
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),

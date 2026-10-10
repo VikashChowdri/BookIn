@@ -29,22 +29,12 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final credential = await AuthService.instance.signInWithEmailAndPassword(
-        email: _emailController.text,
+      final credential = await AuthService.instance.signInWithUsernameOrEmail(
+        identifier: _emailController.text,
         password: _passwordController.text,
       );
 
       if (!mounted) return;
-
-      // If email isn't verified, redirect to the verification screen
-      if (credential.user != null && !credential.user!.emailVerified) {
-        Navigator.pushNamed(
-          context,
-          AppRoutes.verification,
-          arguments: {'email': credential.user!.email ?? ''},
-        );
-        return;
-      }
 
       // Successful sign-in — go to home
       Navigator.pushReplacementNamed(context, AppRoutes.home);
@@ -110,11 +100,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      labelText: 'Email Address',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      labelText: 'Email or Username',
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
                     validator: (val) =>
-                        val != null && val.contains('@') ? null : 'Enter a valid email',
+                        val != null && val.isNotEmpty ? null : 'Enter email or username',
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

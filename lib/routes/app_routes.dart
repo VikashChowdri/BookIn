@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
+import '../models/user_model.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/onboarding_screen.dart';
@@ -15,6 +16,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/home/my_listings_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/profile/public_profile_screen.dart';
 import '../screens/search/search_results_screen.dart';
 import '../screens/search/search_screen.dart';
 import '../screens/booking/my_bookings_screen.dart';
@@ -34,6 +36,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String verification = '/verification';
   static const String profile = '/profile';
+  static const String publicProfile = '/public-profile';
   static const String editProfile = '/edit-profile';
 
   // Member 2 - Book Management
@@ -152,6 +155,17 @@ class AppRoutes {
         ),
         settings: settings,
       );
+    }
+
+    // Public Profile — requires UserModel argument
+    if (settings.name == publicProfile) {
+      final userModel = settings.arguments as UserModel?;
+      if (userModel != null) {
+        return MaterialPageRoute(
+          builder: (_) => PublicProfileScreen(user: userModel),
+          settings: settings,
+        );
+      }
     }
 
     // Fall back to static routes map

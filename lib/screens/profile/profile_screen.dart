@@ -1,17 +1,61 @@
 import 'package:flutter/material.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/database_service.dart';
+import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  UserModel? _userModel;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = AuthService.instance.currentUser;
+    if (user != null) {
+      final userModel = await DatabaseService.instance.getUserProfile(user.uid);
+      if (mounted) {
+        setState(() {
+          _userModel = userModel;
+          _isLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = AuthService.instance.currentUser;
 
-    final displayName = user?.displayName ?? 'BookIn User';
-    final email = user?.email ?? 'No email';
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('My Profile')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final displayName = _userModel?.publicName ?? user?.displayName ?? 'BookIn User';
+    final username = _userModel?.username ?? '';
+    final email = _userModel?.email ?? user?.email ?? 'No email';
+    final phone = _userModel?.phone ?? '';
+    final bio = _userModel?.bio ?? '';
+    final avatarUrl = _userModel?.profilePictureUrl ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -19,8 +63,9 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.editProfile);
+            onPressed: () async {
+              await Navigator.pushNamed(context, AppRoutes.editProfile, arguments: _userModel);
+              _loadUser(); // Refresh after edit
             },
           ),
         ],
@@ -32,13 +77,18 @@ class ProfileScreen extends StatelessWidget {
             CircleAvatar(
               radius: 50,
               backgroundColor: theme.colorScheme.primary,
-              child: Text(
-                displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              backgroundImage: avatarUrl.isNotEmpty && !avatarUrl.contains('unsplash')
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl.isEmpty || avatarUrl.contains('unsplash')
+                  ? Text(
+                      displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(height: 16),
             Text(
@@ -48,22 +98,39 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
+            if (username.isNotEmpty)
+              Text(
+                '@$username',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            const SizedBox(height: 4),
             Text(
               email,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            if (user != null && !user.emailVerified) ...[
-              const SizedBox(height: 8),
-              Chip(
-                avatar: Icon(Icons.warning_amber_rounded, size: 16, color: theme.colorScheme.error),
-                label: Text(
-                  'Email not verified',
-                  style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+            if (phone.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                phone,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-                backgroundColor: theme.colorScheme.error.withValues(alpha: 0.1),
-                side: BorderSide.none,
+              ),
+            ],
+            if (bio.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  bio,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
             ],
             const SizedBox(height: 24),

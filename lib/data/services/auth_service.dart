@@ -1,4 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'database_service.dart';
+import '../../models/user_model.dart';
+import '../../core/constants/app_constants.dart';
 
 /// A singleton service that wraps [FirebaseAuth] and exposes every
 /// authentication operation the app needs.
@@ -26,26 +29,46 @@ class AuthService {
   // ---------------------------------------------------------------------------
 
   /// Creates a new user account and sends a verification email.
-  /// Returns the [UserCredential] on success.
+  /// Also creates a user profile document in Firestore.
   /// Throws [AuthException] with a human-readable message on failure.
   Future<UserCredential> signUpWithEmailAndPassword({
     required String email,
     required String password,
-    String? displayName,
+    required String username,
+    required String publicName,
   }) async {
     try {
+      // 1. Check if username is already taken
+      final isAvailable = await DatabaseService.instance.isUsernameAvailable(username);
+      if (!isAvailable) {
+        throw AuthException('username-taken', 'Username is already taken. Please choose another.');
+      }
+
+      // 2. Create Auth Account
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
 
-      // Set display name if provided
-      if (displayName != null && displayName.isNotEmpty) {
-        await credential.user?.updateDisplayName(displayName);
+      // 3. Set display name in Auth
+      if (publicName.isNotEmpty) {
+        await credential.user?.updateDisplayName(publicName);
       }
 
-      // Send verification email
-      await credential.user?.sendEmailVerification();
+      // 4. Create User Profile in Firestore
+      if (credential.user != null) {
+        final userModel = UserModel(
+          id: credential.user!.uid,
+          username: username,
+          email: email.trim(),
+          publicName: publicName,
+          profilePictureUrl: AppConstants.defaultUserAvatar,
+          createdAt: DateTime.now(),
+        );
+        await DatabaseService.instance.createUserProfile(userModel);
+      }
+
+      // 5. Navigate without verification for now (Removed sendEmailVerification)
 
       return credential;
     } on FirebaseException catch (e) {
@@ -57,14 +80,25 @@ class AuthService {
   // Email / Password — Sign In
   // ---------------------------------------------------------------------------
 
-  /// Signs in an existing user.
-  Future<UserCredential> signInWithEmailAndPassword({
-    required String email,
+  /// Signs in an existing user with either email or username.
+  Future<UserCredential> signInWithUsernameOrEmail({
+    required String identifier,
     required String password,
   }) async {
     try {
+      String emailToUse = identifier.trim();
+      
+      // If the identifier doesn't look like an email, assume it's a username
+      if (!emailToUse.contains('@')) {
+        final userProfile = await DatabaseService.instance.getUserProfileByUsername(emailToUse);
+        if (userProfile == null) {
+          throw AuthException('user-not-found', 'No account found with this username.');
+        }
+        emailToUse = userProfile.email;
+      }
+      
       return await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: emailToUse,
         password: password,
       );
     } on FirebaseException catch (e) {
@@ -112,6 +146,27 @@ class AuthService {
   /// Signs out the current user.
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Account Deletion
+  // ---------------------------------------------------------------------------
+
+  /// Deletes the current user's account and all associated data.
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        // 1. Delete data from Firestore
+        await DatabaseService.instance.deleteUserData(user.uid);
+        // 2. Delete Auth account
+        await user.delete();
+      } on FirebaseException catch (e) {
+        throw _mapException(e);
+      }
+    } else {
+      throw AuthException('no-user', 'No user is currently signed in.');
+    }
   }
 
   // ---------------------------------------------------------------------------
