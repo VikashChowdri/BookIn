@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
@@ -30,6 +33,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final ChatService _chatService = ChatService.instance;
   final String _currentUserId = AuthService.instance.currentUser?.uid ?? '';
   bool _showContextBanner = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -70,6 +74,47 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       attachedBookTitle: attachedTitle,
       attachedBookImageUrl: attachedImage,
     );
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (pickedFile == null) return;
+
+    setState(() {
+      _isUploadingImage = true;
+    });
+
+    try {
+      final file = File(pickedFile.path);
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('chat_images')
+          .child(widget.roomId)
+          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      final uploadTask = await ref.putFile(file);
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      await _chatService.sendMessage(
+        widget.roomId,
+        widget.otherUser.id,
+        '',
+        chatImageUrl: downloadUrl,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
   }
 
   @override
@@ -189,6 +234,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                   ],
                                 ),
                               ),
+                            if (message.chatImageUrl != null)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: CachedNetworkImage(
+                                    imageUrl: message.chatImageUrl!,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const SizedBox(
+                                      height: 150,
+                                      child: Center(child: CircularProgressIndicator()),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             if (message.text.isNotEmpty)
                               Text(
                                 message.text,
@@ -278,6 +338,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.image_outlined),
+                  color: theme.colorScheme.primary,
+                  onPressed: _isUploadingImage ? null : _pickImage,
+                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
@@ -298,13 +363,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary,
-                  child: IconButton(
-                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                    onPressed: _sendMessage,
+                if (_isUploadingImage)
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary,
+                    child: IconButton(
+                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      onPressed: _sendMessage,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
