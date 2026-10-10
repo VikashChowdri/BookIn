@@ -15,6 +15,32 @@ class NotificationsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
+        actions: [
+          if (userId != null)
+            IconButton(
+              icon: const Icon(Icons.clear_all),
+              tooltip: 'Clear All',
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Clear All Notifications'),
+                    content: const Text('Are you sure you want to delete all notifications?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true), 
+                        child: const Text('Clear', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await DatabaseService.instance.clearAllNotifications(userId);
+                }
+              },
+            ),
+        ],
       ),
       body: userId == null
           ? const Center(child: Text('Please log in to view notifications.'))
@@ -42,7 +68,20 @@ class NotificationsScreen extends StatelessWidget {
                   itemCount: notifications.length,
                   itemBuilder: (context, index) {
                     final notif = notifications[index];
-                    return _NotificationTile(notif: notif);
+                    return Dismissible(
+                      key: Key(notif.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        color: Colors.red,
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (_) {
+                        DatabaseService.instance.deleteNotification(notif.id);
+                      },
+                      child: _NotificationTile(notif: notif),
+                    );
                   },
                 );
               },
@@ -154,6 +193,15 @@ class _NotificationTileState extends State<_NotificationTile> {
                 Text(
                   _formatTime(widget.notif.createdAt),
                   style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    DatabaseService.instance.deleteNotification(widget.notif.id);
+                  },
                 ),
               ],
             ),

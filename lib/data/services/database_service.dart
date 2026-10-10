@@ -350,6 +350,27 @@ class DatabaseService {
     }
   }
 
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _notificationsRef.doc(notificationId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete notification: $e');
+    }
+  }
+
+  Future<void> clearAllNotifications(String userId) async {
+    try {
+      final snapshot = await _notificationsRef.where('userId', isEqualTo: userId).get();
+      final batch = _firestore.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to clear notifications: $e');
+    }
+  }
+
   Future<void> respondToBookingRequest(String notificationId, String bookingId, String bookId, String buyerId, String bookTitle, bool accept) async {
     try {
       // 1. Mark the seller's notification as read or update its type
