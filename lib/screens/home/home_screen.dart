@@ -134,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
       pinned: true,
       elevation: 0,
       scrolledUnderElevation: 4,
+      automaticallyImplyLeading: false,
       backgroundColor: theme.scaffoldBackgroundColor,
       title: Row(
         mainAxisSize: MainAxisSize.min,
