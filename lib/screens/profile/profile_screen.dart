@@ -217,6 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 targetId: user.uid,
                 targetType: 'user',
                 targetName: displayName,
+                isOwnAsset: true,
               ),
           ],
         ),
