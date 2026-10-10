@@ -5,7 +5,6 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../routes/app_routes.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/utils/globals.dart';
 
 class BookingDialog extends StatefulWidget {
