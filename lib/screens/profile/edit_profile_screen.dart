@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../data/services/database_service.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/storage_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,6 +21,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   
   UserModel? _userModel;
   bool _isLoading = false;
+  bool _isUploadingImage = false;
 
   @override
   void didChangeDependencies() {
@@ -74,21 +77,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Center(
                   child: Stack(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 48,
-                        backgroundColor: Colors.indigo,
-                        child: Icon(Icons.person, size: 50, color: Colors.white),
+                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                        backgroundImage: _userModel?.profilePictureUrl != null &&
+                                _userModel!.profilePictureUrl.isNotEmpty &&
+                                !_userModel!.profilePictureUrl.contains('unsplash')
+                            ? CachedNetworkImageProvider(_userModel!.profilePictureUrl)
+                            : null,
+                        child: _userModel?.profilePictureUrl == null || 
+                                _userModel!.profilePictureUrl.isEmpty || 
+                                _userModel!.profilePictureUrl.contains('unsplash')
+                            ? Text(
+                                _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'U',
+                                style: theme.textTheme.headlineLarge?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
                       ),
+                      if (_isUploadingImage)
+                        const Positioned.fill(
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 16,
-                            color: Colors.white,
+                        child: GestureDetector(
+                          onTap: _isUploadingImage ? null : _pickAndUploadImage,
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: theme.colorScheme.primary,
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -151,6 +178,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    if (_userModel == null) return;
+    
+    setState(() => _isUploadingImage = true);
+    try {
+      final newUrl = await StorageService.instance.pickAndUploadProfilePicture(_userModel!.id);
+      if (newUrl != null) {
+        setState(() {
+          _userModel = _userModel!.copyWith(profilePictureUrl: newUrl);
+        });
+        // Optionally save to database immediately or wait for Save Changes
+        await DatabaseService.instance.updateUserProfile(_userModel!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
   }
 
   Future<void> _handleSave() async {
