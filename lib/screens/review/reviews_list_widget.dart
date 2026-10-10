@@ -8,12 +8,14 @@ class ReviewsListWidget extends StatelessWidget {
   final String targetId;
   final String targetType;
   final String targetName;
+  final bool isOwnAsset;
 
   const ReviewsListWidget({
     super.key,
     required this.targetId,
     required this.targetType,
     required this.targetName,
+    this.isOwnAsset = false,
   });
 
   @override
@@ -71,13 +73,15 @@ class ReviewsListWidget extends StatelessWidget {
                   targetId,
                 ),
                 builder: (context, snapshot) {
+                  if (isOwnAsset) return const SizedBox.shrink();
+                  
                   final hasTransaction = snapshot.data ?? false;
                   if (!hasTransaction) return const SizedBox.shrink();
 
                   return _buildReviewButton(context);
                 },
               )
-            else
+            else if (!isOwnAsset)
               _buildReviewButton(context),
           ],
         ),
@@ -98,7 +102,9 @@ class ReviewsListWidget extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'No reviews yet. Be the first to leave one!',
+                  isOwnAsset 
+                      ? 'No reviews yet.' 
+                      : 'No reviews yet. Be the first to leave one!',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,

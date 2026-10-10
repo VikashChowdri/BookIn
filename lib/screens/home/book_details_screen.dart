@@ -81,6 +81,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     targetId: book.id,
                     targetType: 'book',
                     targetName: book.title,
+                    isOwnAsset: isOwner,
                   ),
                 ],
               ),
