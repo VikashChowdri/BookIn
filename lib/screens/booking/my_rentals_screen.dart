@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_constants.dart';
 import '../review/review_dialog.dart';
+import 'ticket_screen.dart';
 
 class MyRentalsScreen extends StatelessWidget {
   const MyRentalsScreen({super.key});
@@ -165,6 +166,19 @@ class _BookingCard extends StatelessWidget {
                 icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                 tooltip: 'Cancel Booking',
                 onPressed: () => _cancelBooking(context),
+              ),
+            if (booking.status == 'accepted' || booking.status == 'active')
+              IconButton(
+                icon: const Icon(Icons.qr_code_2_rounded),
+                tooltip: 'Show Ticket',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TicketScreen(booking: booking),
+                    ),
+                  );
+                },
               ),
             if (booking.status == 'accepted')
               PopupMenuButton<String>(
