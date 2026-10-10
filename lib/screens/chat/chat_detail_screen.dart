@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:async';
 import '../../core/constants/app_colors.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
@@ -10,6 +11,7 @@ import '../../data/services/database_service.dart';
 import '../../models/message.dart';
 import '../../models/user_model.dart';
 import '../../models/book.dart';
+import '../../models/chat.dart';
 import '../../routes/app_routes.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -35,6 +37,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final String _currentUserId = AuthService.instance.currentUser?.uid ?? '';
   bool _showContextBanner = false;
   bool _isUploadingImage = false;
+  Timer? _typingTimer;
+  bool _isTyping = false;
 
   @override
   void initState() {
@@ -47,9 +51,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
+    if (_isTyping) {
+      _chatService.updateTypingStatus(widget.roomId, false);
+    }
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onTextChanged(String text) {
+    if (!_isTyping) {
+      _isTyping = true;
+      _chatService.updateTypingStatus(widget.roomId, true);
+    }
+    
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      _isTyping = false;
+      _chatService.updateTypingStatus(widget.roomId, false);
+    });
   }
 
   void _sendMessage() async {
@@ -66,6 +87,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     setState(() {
       _showContextBanner = false;
     });
+
+    if (_isTyping) {
+      _isTyping = false;
+      _typingTimer?.cancel();
+      _chatService.updateTypingStatus(widget.roomId, false);
+    }
 
     await _chatService.sendMessage(
       widget.roomId, 
@@ -233,9 +260,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     : null,
               ),
               const SizedBox(width: 12),
-              Text(
-                widget.otherUser.publicName,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              StreamBuilder<ChatRoom?>(
+                stream: _chatService.getChatRoomStream(widget.roomId),
+                builder: (context, snapshot) {
+                  final isOtherTyping = snapshot.data?.typing.contains(widget.otherUser.id) ?? false;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.otherUser.publicName,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      if (isOtherTyping)
+                        Text(
+                          'Typing...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -378,6 +426,28 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                   fontSize: 15,
                                 ),
                               ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatTime(message.timestamp),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isMe ? Colors.white70 : Colors.grey[500],
+                                  ),
+                                ),
+                                if (isMe) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    message.isRead ? Icons.done_all : Icons.check,
+                                    size: 14,
+                                    color: message.isRead ? Colors.blue[300] : Colors.white70,
+                                  ),
+                                ],
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -467,6 +537,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    onChanged: _onTextChanged,
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
                       border: OutlineInputBorder(
@@ -504,5 +575,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ],
       ),
     );
+  }
+
+  String _formatTime(DateTime time) {
+    final hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
+    final ampm = time.hour >= 12 ? 'PM' : 'AM';
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $ampm';
   }
 }

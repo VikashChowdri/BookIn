@@ -6,6 +6,7 @@ class ChatRoom {
   final String lastMessage;
   final DateTime lastMessageTime;
   final Map<String, int> unreadCounts;
+  final List<String> typing;
 
   ChatRoom({
     required this.id,
@@ -13,6 +14,7 @@ class ChatRoom {
     required this.lastMessage,
     required this.lastMessageTime,
     required this.unreadCounts,
+    this.typing = const [],
   });
 
   factory ChatRoom.fromMap(String id, Map<String, dynamic> data) {
@@ -22,6 +24,7 @@ class ChatRoom {
       lastMessage: data['lastMessage'] ?? '',
       lastMessageTime: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       unreadCounts: Map<String, int>.from(data['unreadCounts'] ?? {}),
+      typing: List<String>.from(data['typing'] ?? []),
     );
   }
 
@@ -31,6 +34,7 @@ class ChatRoom {
       'lastMessage': lastMessage,
       'lastMessageTime': Timestamp.fromDate(lastMessageTime),
       'unreadCounts': unreadCounts,
+      'typing': typing,
     };
   }
 }
