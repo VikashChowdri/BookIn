@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/notification_item.dart';
-import '../../models/booking.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -115,6 +115,41 @@ class _NotificationTileState extends State<_NotificationTile> {
         throw Exception('Booking not found.');
       }
 
+      final normStatus = booking.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+      if (normStatus == 'active' || normStatus == 'completed') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This booking has already been verified and completed.')),
+          );
+        }
+        return;
+      }
+
+      if (accept) {
+        try {
+          final bookDoc = await FirebaseFirestore.instance
+              .collection(AppConstants.booksCollection)
+              .doc(booking.bookId)
+              .get();
+          if (bookDoc.exists) {
+            final bookData = bookDoc.data() as Map<String, dynamic>;
+            final bool isAvailable = bookData['available'] ?? true;
+            final String currentBookStatus = bookData['status'] ?? 'available';
+            if (!isAvailable && (currentBookStatus == 'sold' || currentBookStatus == 'rented')) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Notice: This book is already $currentBookStatus from another accepted request.'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
       await DatabaseService.instance.respondToBookingRequest(
         widget.notif.id,
         bookingId,
@@ -122,11 +157,19 @@ class _NotificationTileState extends State<_NotificationTile> {
         booking.buyerId,
         booking.bookTitle,
         accept,
+        type: booking.type,
       );
 
       if (mounted) {
+        final isRental = booking.type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
+        final message = accept
+            ? (isRental ? 'Rental Request Accepted!' : 'Purchase Request Accepted!')
+            : 'Request Rejected';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(accept ? 'Booking Accepted!' : 'Booking Rejected')),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: accept ? Colors.green : Colors.red,
+          ),
         );
       }
     } catch (e) {
@@ -148,7 +191,9 @@ class _NotificationTileState extends State<_NotificationTile> {
     IconData icon;
     Color iconColor;
 
-    switch (widget.notif.type) {
+    final normType = widget.notif.type.replaceAll(RegExp(r'[^a-zA-Z_]'), '').toLowerCase();
+
+    switch (normType) {
       case 'booking_request':
         icon = Icons.calendar_today;
         iconColor = Colors.orange;
@@ -161,10 +206,20 @@ class _NotificationTileState extends State<_NotificationTile> {
         icon = Icons.cancel;
         iconColor = Colors.red;
         break;
+      case 'chat_message':
+        icon = Icons.chat_bubble_outline;
+        iconColor = Colors.blue;
+        break;
       default:
         icon = Icons.notifications;
         iconColor = theme.colorScheme.primary;
     }
+
+    final bool canRespond = widget.notif.relatedId != null &&
+        widget.notif.relatedId!.isNotEmpty &&
+        !normType.contains('accepted') &&
+        !normType.contains('rejected') &&
+        normType != 'chat_message';
 
     return Card(
       elevation: isUnread ? 2 : 0,
@@ -211,23 +266,28 @@ class _NotificationTileState extends State<_NotificationTile> {
               widget.notif.body,
               style: theme.textTheme.bodyMedium,
             ),
-            if (widget.notif.type == 'booking_request') ...[
+            if (canRespond) ...[
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
+                  OutlinedButton.icon(
                     onPressed: _isLoading ? null : () => _handleBookingAction(false),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('Reject'),
+                    icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                    label: const Text('Reject'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: _isLoading ? null : () => _handleBookingAction(true),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                    child: _isLoading
+                    icon: _isLoading
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Accept'),
+                        : const Icon(Icons.check, size: 16, color: Colors.white),
+                    label: const Text('Accept'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                   ),
                 ],
               ),

@@ -4,6 +4,7 @@ import '../../models/booking.dart';
 import '../../models/notification_item.dart';
 import '../../models/user_model.dart';
 import '../../models/review.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/app_constants.dart';
 
 class DatabaseService {
@@ -291,17 +292,20 @@ class DatabaseService {
       );
       await docRef.set(newBooking.toMap());
       
-      // Optionally mark book as unavailable while pending
-      await _booksRef.doc(booking.bookId).update({'available': false});
+      // Note: Book remains available while request is pending so multiple requests can be received.
+      // Book will only be marked sold/rented when seller accepts a request.
 
       // Create a notification for the seller
       if (booking.buyerId != booking.sellerId) {
         final notifRef = _notificationsRef.doc();
+        final isRental = booking.type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
         final notif = NotificationItem(
           id: notifRef.id,
           userId: booking.sellerId,
-          title: 'New Booking Request!',
-          body: 'Someone wants to buy/rent "${booking.bookTitle}".',
+          title: isRental ? 'New Rental Request!' : 'New Purchase Request!',
+          body: isRental
+              ? 'Someone wants to rent "${booking.bookTitle}".'
+              : 'Someone wants to buy "${booking.bookTitle}".',
           type: 'booking_request',
           relatedId: newBooking.id,
           isRead: false,
@@ -336,39 +340,69 @@ class DatabaseService {
 
   Future<void> updateBookingStatus(String bookingId, String status) async {
     try {
-      await _bookingsRef.doc(bookingId).update({'status': status});
+      await _bookingsRef.doc(bookingId).set({
+        'status': status,
+        'updatedAt': Timestamp.now(),
+      }, SetOptions(merge: true));
+      if (status == 'completed') {
+        final bookingDoc = await _bookingsRef.doc(bookingId).get();
+        if (bookingDoc.exists) {
+          final data = bookingDoc.data() as Map<String, dynamic>?;
+          final bookId = data?['bookId'] as String?;
+          final rawType = data?['type'] as String? ?? 'purchase';
+          final isRental = rawType.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
+          if (isRental && bookId != null && bookId.isNotEmpty) {
+            await _booksRef.doc(bookId).set({'available': true, 'status': 'available'}, SetOptions(merge: true));
+          }
+        }
+      }
     } catch (e) {
       throw Exception('Failed to update booking status: $e');
     }
   }
 
   Stream<List<Booking>> getUserBookingsStream(String userId, {String? type}) {
-    var query = _bookingsRef.where('buyerId', isEqualTo: userId);
-    if (type != null) {
-      query = query.where('type', isEqualTo: type);
-    }
-    return query.snapshots().map((snapshot) {
-      final list = snapshot.docs.map((doc) {
-        return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-      }).toList();
+    return _bookingsRef
+        .where('buyerId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .where((b) {
+            if (type != null) {
+              final bType = b.type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+              final targetType = type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+              return bType == targetType;
+            }
+            return true;
+          })
+          .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
   }
 
   Stream<List<Booking>> getIncomingRequestsStream(String sellerId, {String? type}) {
-    var query = _bookingsRef
+    // Single-field query on sellerId avoids composite index requirements
+    return _bookingsRef
         .where('sellerId', isEqualTo: sellerId)
-        .where('status', whereIn: ['pending', 'accepted', 'active']);
-        
-    if (type != null) {
-      query = query.where('type', isEqualTo: type);
-    }
-        
-    return query.snapshots().map((snapshot) {
-      final list = snapshot.docs.map((doc) {
-        return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-      }).toList();
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .where((b) {
+            final s = b.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+            final matchesStatus = s.isEmpty || s == 'pending' || s == 'accepted' || s == 'active' || s == 'completed';
+            if (!matchesStatus) return false;
+
+            if (type != null) {
+              final bType = b.type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+              final targetType = type.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+              return bType == targetType;
+            }
+            return true;
+          })
+          .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
@@ -480,56 +514,125 @@ class DatabaseService {
     }
   }
 
-  Future<void> respondToBookingRequest(String notificationId, String bookingId, String bookId, String buyerId, String bookTitle, bool accept) async {
+  Future<void> respondToBookingRequest(
+    String notificationId,
+    String bookingId,
+    String bookId,
+    String buyerId,
+    String bookTitle,
+    bool accept, {
+    String? type,
+  }) async {
     try {
       // 1. Mark the seller's notification as read or update its type
       if (notificationId.isNotEmpty) {
-        await _notificationsRef.doc(notificationId).update({
-          'isRead': true,
-          'type': accept ? 'booking_request_accepted' : 'booking_request_rejected',
-        });
+        try {
+          await _notificationsRef.doc(notificationId).set({
+            'isRead': true,
+            'type': accept ? 'booking_request_accepted' : 'booking_request_rejected',
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Notice: notification update skipped: $e');
+        }
       }
 
       // 2. Perform the actual response logic
-      await processBookingResponse(bookingId, bookId, buyerId, bookTitle, accept);
+      await processBookingResponse(
+        bookingId,
+        bookId,
+        buyerId,
+        bookTitle,
+        accept,
+        type: type,
+      );
     } catch (e) {
       throw Exception('Failed to respond to booking request: $e');
     }
   }
 
-  Future<void> processBookingResponse(String bookingId, String bookId, String buyerId, String bookTitle, bool accept) async {
+  Future<void> processBookingResponse(
+    String bookingId,
+    String bookId,
+    String buyerId,
+    String bookTitle,
+    bool accept, {
+    String? type,
+  }) async {
     try {
-      // 1. Update booking status
       final newStatus = accept ? 'accepted' : 'rejected';
-      await _bookingsRef.doc(bookingId).update({'status': newStatus});
 
-      // 2. If rejected, make the book available again
-      if (!accept) {
-        await _booksRef.doc(bookId).update({'available': true, 'status': 'available'});
-      } else {
-        // If accepted, fetch booking type to update book status appropriately
+      // Retrieve old booking status and type before updating
+      String? oldStatus;
+      String resolvedType = type ?? '';
+      try {
         final bookingDoc = await _bookingsRef.doc(bookingId).get();
-        if (bookingDoc.exists) {
-          final data = bookingDoc.data() as Map<String, dynamic>?;
-          final type = data?['type'] as String? ?? 'purchase';
-          final newBookStatus = type == 'rental' ? 'rented' : 'sold';
-          await _booksRef.doc(bookId).update({'status': newBookStatus});
+        final data = bookingDoc.data() as Map<String, dynamic>?;
+        oldStatus = (data?['status'] as String?)?.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+        if (resolvedType.isEmpty) {
+          resolvedType = data?['type'] as String? ?? 'purchase';
+        }
+      } catch (_) {}
+
+      // 1. Always update booking status using set with merge
+      // This is atomic, safe, and succeeds even if document has partial fields or offline cache
+      await _bookingsRef.doc(bookingId).set({
+        'status': newStatus,
+        'updatedAt': Timestamp.now(),
+      }, SetOptions(merge: true));
+
+      final isRental = resolvedType.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
+
+      // 2. Safely update book document if bookId is provided
+      if (bookId.isNotEmpty) {
+        try {
+          if (accept) {
+            final newBookStatus = isRental ? 'rented' : 'sold';
+            await _booksRef.doc(bookId).set({
+              'available': false,
+              'status': newBookStatus,
+            }, SetOptions(merge: true));
+          } else {
+            // Rejecting: only reset book to 'available' if THIS booking was previously accepted
+            // If it was pending, do not modify book so any other accepted booking remains intact
+            if (oldStatus == 'accepted') {
+              await _booksRef.doc(bookId).set({
+                'available': true,
+                'status': 'available',
+              }, SetOptions(merge: true));
+            }
+          }
+        } catch (e) {
+          debugPrint('Notice: book status update skipped: $e');
         }
       }
 
-      // 3. Send a notification to the buyer
-      final notifRef = _notificationsRef.doc();
-      final notif = NotificationItem(
-        id: notifRef.id,
-        userId: buyerId,
-        title: accept ? 'Booking Accepted!' : 'Booking Rejected',
-        body: accept ? 'Your request for "$bookTitle" was accepted.' : 'Your request for "$bookTitle" was rejected.',
-        type: 'general',
-        relatedId: bookingId,
-        isRead: false,
-        createdAt: DateTime.now(),
-      );
-      await notifRef.set(notif.toMap());
+      // 3. Safely send a notification to the buyer
+      if (buyerId.isNotEmpty) {
+        try {
+          final notifRef = _notificationsRef.doc();
+          final notif = NotificationItem(
+            id: notifRef.id,
+            userId: buyerId,
+            title: accept
+                ? (isRental ? 'Rental Request Accepted!' : 'Purchase Request Accepted!')
+                : (isRental ? 'Rental Request Declined' : 'Purchase Request Declined'),
+            body: accept
+                ? (isRental
+                    ? 'Your rental request for "$bookTitle" has been accepted.'
+                    : 'Your purchase request for "$bookTitle" has been accepted.')
+                : (isRental
+                    ? 'Your rental request for "$bookTitle" was declined.'
+                    : 'Your purchase request for "$bookTitle" was declined.'),
+            type: accept ? 'booking_request_accepted' : 'booking_request_rejected',
+            relatedId: bookingId,
+            isRead: false,
+            createdAt: DateTime.now(),
+          );
+          await notifRef.set(notif.toMap());
+        } catch (e) {
+          debugPrint('Notice: buyer notification skipped: $e');
+        }
+      }
     } catch (e) {
       throw Exception('Failed to process booking response: $e');
     }

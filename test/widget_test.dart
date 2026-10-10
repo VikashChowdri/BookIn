@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(const BookExchangeApp());
 
     // Verify that splash screen loads with title
-    expect(find.text('Book Exchange'), findsOneWidget);
+    expect(find.text('BookIn'), findsOneWidget);
 
     // Advance time past the splash duration to finish timers and transition
     await tester.pumpAndSettle(const Duration(seconds: 3));

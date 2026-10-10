@@ -20,7 +20,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'icon': 'menu_book',
     },
     {
-      'title': 'Exchange & Rent',
+      'title': 'Buy & Rent',
       'description': 'Save money and space. Request to borrow or buy books easily with secure in-app requests.',
       'icon': 'swap_horizontal_circle',
     },

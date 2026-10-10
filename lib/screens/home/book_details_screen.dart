@@ -5,7 +5,6 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -506,7 +505,18 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           FilledButton.tonalIcon(
             onPressed: () async {
               final currentUserId = AuthService.instance.currentUser?.uid;
-              if (currentUserId == null || currentUserId == book.sellerId) return;
+              if (currentUserId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please log in to message the seller')),
+                );
+                return;
+              }
+              if (currentUserId == book.sellerId) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('You cannot message yourself')),
+                );
+                return;
+              }
 
               showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
               try {

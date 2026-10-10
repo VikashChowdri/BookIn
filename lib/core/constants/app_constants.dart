@@ -4,7 +4,7 @@ class AppConstants {
 
   // App Metadata
   static const String appName = 'BookIn';
-  static const String appTagline = 'Buy, Sell & Exchange Books';
+  static const String appTagline = 'Buy, Sell & Rent Books';
   static const String appVersion = '1.0.0';
 
   // Firestore Collection Names

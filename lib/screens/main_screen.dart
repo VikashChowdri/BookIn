@@ -4,13 +4,13 @@ import '../../core/constants/app_colors.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../models/user_model.dart';
-import '../../routes/app_routes.dart';
 import 'home/home_screen.dart';
 import 'search/search_screen.dart';
-import 'notifications/notifications_screen.dart';
 import 'profile/profile_screen.dart';
 import 'cart/cart_screen.dart';
 import 'chat/chat_list_screen.dart';
+import '../../data/services/chat_service.dart';
+import '../../models/chat.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -89,7 +89,26 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Cart',
             ),
             BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 3 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded),
+              icon: StreamBuilder<List<ChatRoom>>(
+                stream: user != null ? ChatService.instance.getUserChats() : const Stream.empty(),
+                builder: (context, snapshot) {
+                  final chats = snapshot.data ?? [];
+                  int totalUnread = 0;
+                  if (user != null) {
+                    for (var chat in chats) {
+                      totalUnread += chat.unreadCounts[user.uid] ?? 0;
+                    }
+                  }
+                  final icon = Icon(_currentIndex == 3 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded);
+                  if (totalUnread > 0) {
+                    return Badge(
+                      label: Text('$totalUnread'),
+                      child: icon,
+                    );
+                  }
+                  return icon;
+                },
+              ),
               label: 'Chat',
             ),
 
