@@ -124,14 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
-        elevation: 4,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Book', style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-      ),
     );
   }
 
