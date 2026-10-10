@@ -136,6 +136,12 @@ class _HomeScreenState extends State<HomeScreen> {
       scrolledUnderElevation: 4,
       automaticallyImplyLeading: false,
       backgroundColor: theme.scaffoldBackgroundColor,
+      leading: IconButton(
+        icon: const Icon(Icons.notifications_none_rounded),
+        tooltip: 'Notifications',
+        onPressed: () => Navigator.pushNamed(context, AppRoutes.notifications),
+      ),
+      leadingWidth: 48,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
