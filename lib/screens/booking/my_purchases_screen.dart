@@ -100,18 +100,20 @@ class MyPurchasesScreen extends StatelessWidget {
                                   '${AppConstants.defaultCurrencySymbol}${booking.totalPrice.toStringAsFixed(0)}',
                                   style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
                                 ),
-                                if (booking.status == 'accepted' || booking.status == 'active')
-                                  IconButton(
-                                    icon: const Icon(Icons.qr_code_2_rounded),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => TicketScreen(booking: booking),
-                                        ),
-                                      );
-                                    },
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.confirmation_num_outlined,
+                                    color: (booking.status == 'accepted' || booking.status == 'active') ? theme.colorScheme.primary : Colors.grey,
                                   ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => TicketScreen(booking: booking),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                           );

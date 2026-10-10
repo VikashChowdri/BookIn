@@ -167,19 +167,21 @@ class _BookingCard extends StatelessWidget {
                 tooltip: 'Cancel Booking',
                 onPressed: () => _cancelBooking(context),
               ),
-            if (booking.status == 'accepted' || booking.status == 'active')
-              IconButton(
-                icon: const Icon(Icons.qr_code_2_rounded),
-                tooltip: 'Show Ticket',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TicketScreen(booking: booking),
-                    ),
-                  );
-                },
+            IconButton(
+              icon: Icon(
+                Icons.confirmation_num_outlined,
+                color: (booking.status == 'accepted' || booking.status == 'active') ? theme.colorScheme.primary : Colors.grey,
               ),
+              tooltip: 'Show Ticket',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TicketScreen(booking: booking),
+                  ),
+                );
+              },
+            ),
             if (booking.status == 'accepted')
               PopupMenuButton<String>(
                 icon: const Icon(Icons.rate_review_outlined),
