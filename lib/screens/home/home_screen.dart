@@ -277,23 +277,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Ready to find your next great read?',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: isStudent ? const Color(0xFF594D68) : Colors.white.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Welcome, Student! 👋',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: isStudent ? const Color(0xFF2C243B) : Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
