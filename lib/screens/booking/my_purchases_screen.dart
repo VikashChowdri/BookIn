@@ -4,6 +4,7 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../core/constants/app_constants.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'ticket_screen.dart';
 
 class MyPurchasesScreen extends StatelessWidget {
   const MyPurchasesScreen({super.key});
@@ -92,9 +93,28 @@ class MyPurchasesScreen extends StatelessWidget {
                             ),
                             title: Text(booking.bookTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text('Status: ${booking.status.toUpperCase()}'),
-                            trailing: Text(
-                              '${AppConstants.defaultCurrencySymbol}${booking.totalPrice.toStringAsFixed(0)}',
-                              style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${AppConstants.defaultCurrencySymbol}${booking.totalPrice.toStringAsFixed(0)}',
+                                  style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.confirmation_num_outlined,
+                                    color: (booking.status == 'accepted' || booking.status == 'active') ? theme.colorScheme.primary : Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => TicketScreen(booking: booking),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           );
                         }).toList(),

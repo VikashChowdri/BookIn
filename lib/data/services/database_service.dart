@@ -334,6 +334,14 @@ class DatabaseService {
     }
   }
 
+  Future<void> updateBookingStatus(String bookingId, String status) async {
+    try {
+      await _bookingsRef.doc(bookingId).update({'status': status});
+    } catch (e) {
+      throw Exception('Failed to update booking status: $e');
+    }
+  }
+
   Stream<List<Booking>> getUserBookingsStream(String userId, {String? type}) {
     var query = _bookingsRef.where('buyerId', isEqualTo: userId);
     if (type != null) {
@@ -351,7 +359,7 @@ class DatabaseService {
   Stream<List<Booking>> getIncomingRequestsStream(String sellerId, {String? type}) {
     var query = _bookingsRef
         .where('sellerId', isEqualTo: sellerId)
-        .where('status', isEqualTo: 'pending');
+        .where('status', whereIn: ['pending', 'accepted', 'active']);
         
     if (type != null) {
       query = query.where('type', isEqualTo: type);
