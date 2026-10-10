@@ -40,6 +40,7 @@ dependencies:
   cached_network_image: ^4.0.3
   image_picker: ^1.2.4
   firebase_storage: ^13.6.0
+  image_cropper: ^12.2.1
 
 dev_dependencies:
   flutter_test:
