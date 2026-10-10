@@ -61,6 +61,29 @@ class DatabaseService {
     }
   }
 
+  Future<void> blockUser(String currentUserId, String userToBlockId) async {
+    try {
+      await _usersRef.doc(currentUserId).update({
+        'blockedUsers': FieldValue.arrayUnion([userToBlockId])
+      });
+    } catch (e) {
+      throw Exception('Failed to block user: $e');
+    }
+  }
+
+  Future<void> reportUser(String reportingUserId, String reportedUserId, String reason) async {
+    try {
+      await _firestore.collection('reports').add({
+        'reportingUserId': reportingUserId,
+        'reportedUserId': reportedUserId,
+        'reason': reason,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to report user: $e');
+    }
+  }
+
   Stream<UserModel?> getUserProfileStream(String userId) {
     return _usersRef.doc(userId).snapshots().map((doc) {
       if (doc.exists && doc.data() != null) {

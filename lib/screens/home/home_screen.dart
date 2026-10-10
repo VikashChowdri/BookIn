@@ -194,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: IconButton(
             icon: const Icon(Icons.bookmark_border_rounded, size: 20),
             tooltip: 'Wishlist',
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.favorites),
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.wishlist),
           ),
         ),
         const SizedBox(width: 8),
@@ -277,23 +277,6 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Ready to find your next great read?',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: isStudent ? const Color(0xFF594D68) : Colors.white.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Welcome, Student! 👋',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: isStudent ? const Color(0xFF2C243B) : Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -608,7 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGridBookCard(Book book, ThemeData theme, bool isDark) {
-    final isFav = FavoritesManager.instance.isFavorite(book);
+    final isWishlist = FavoritesManager.instance.isWishlist(book);
 
     return GestureDetector(
       onTap: () {
@@ -664,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          FavoritesManager.instance.toggleFavorite(book);
+                          FavoritesManager.instance.toggleWishlist(book);
                         });
                       },
                       child: Container(
@@ -674,8 +657,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isFav ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                          color: isFav ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                          isWishlist ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                          color: isWishlist ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                           size: 18,
                         ),
                       ),

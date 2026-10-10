@@ -8,16 +8,16 @@ import '../models/book.dart';
 class BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback? onTap;
-  final VoidCallback? onFavoriteTap;
-  final bool isFavorite;
+  final VoidCallback? onWishlistTap;
+  final bool isWishlist;
   final bool isGridMode;
 
   const BookCard({
     super.key,
     required this.book,
     this.onTap,
-    this.onFavoriteTap,
-    this.isFavorite = false,
+    this.onWishlistTap,
+    this.isWishlist = false,
     this.isGridMode = false,
   });
 
@@ -175,22 +175,22 @@ class BookCard extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                // Favorite button
+                // Wishlist button
                 IconButton(
                   icon: Icon(
-                    isFavorite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: isFavorite
-                        ? AppColors.error
+                    isWishlist
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: isWishlist
+                        ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
                     size: 22,
                   ),
-                  onPressed: onFavoriteTap,
+                  onPressed: onWishlistTap,
                   visualDensity: VisualDensity.compact,
-                  tooltip: isFavorite
-                      ? 'Remove from favorites'
-                      : 'Add to favorites',
+                  tooltip: isWishlist
+                      ? 'Remove from wishlist'
+                      : 'Add to wishlist',
                 ),
               ],
             ),
@@ -267,7 +267,7 @@ class BookCard extends StatelessWidget {
                     left: 8,
                     child: _availabilityChip(book.available),
                   ),
-                  // Favorite button
+                  // Wishlist button
                   Positioned(
                     top: 4,
                     right: 4,
@@ -275,15 +275,15 @@ class BookCard extends StatelessWidget {
                       color: Colors.black.withValues(alpha: 0.3),
                       shape: const CircleBorder(),
                       child: InkWell(
-                        onTap: onFavoriteTap,
+                        onTap: onWishlistTap,
                         customBorder: const CircleBorder(),
                         child: Padding(
                           padding: const EdgeInsets.all(6),
                           child: Icon(
-                            isFavorite
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: isFavorite ? AppColors.error : Colors.white,
+                            isWishlist
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            color: isWishlist ? theme.colorScheme.primary : Colors.white,
                             size: 18,
                           ),
                         ),
