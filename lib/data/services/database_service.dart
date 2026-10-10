@@ -61,6 +61,15 @@ class DatabaseService {
     }
   }
 
+  Stream<UserModel?> getUserProfileStream(String userId) {
+    return _usersRef.doc(userId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    });
+  }
+
   Future<UserModel?> getUserProfileByUsername(String username) async {
     try {
       final snapshot = await _usersRef.where('username', isEqualTo: username).limit(1).get();

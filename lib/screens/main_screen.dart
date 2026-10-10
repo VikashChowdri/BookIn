@@ -5,11 +5,11 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
-import '../home/home_screen.dart';
-import '../search/search_screen.dart';
-import '../notifications/notifications_screen.dart';
-import '../profile/profile_screen.dart';
-import '../cart/cart_screen.dart';
+import 'home/home_screen.dart';
+import 'search/search_screen.dart';
+import 'notifications/notifications_screen.dart';
+import 'profile/profile_screen.dart';
+import 'cart/cart_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -132,6 +132,8 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Profile',
             ),
           ],
+        ),
+      ),
         ),
       ),
     );
