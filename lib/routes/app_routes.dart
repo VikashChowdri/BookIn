@@ -50,7 +50,8 @@ class AppRoutes {
   static const String myListings = '/my-listings';
   static const String myRentals = '/my-rentals';
   static const String myPurchases = '/my-purchases';
-  static const String incomingRequests = '/incoming-requests';
+  static const String purchaseRequests = '/purchase-requests';
+  static const String rentalRequests = '/rental-requests';
   static const String bookingConfirmation = '/booking-confirmation';
   static const String notifications = '/notifications';
 
@@ -77,7 +78,8 @@ class AppRoutes {
         myListings: (context) => const MyListingsScreen(),
         myRentals: (context) => const MyRentalsScreen(),
         myPurchases: (context) => const MyPurchasesScreen(),
-        incomingRequests: (context) => const IncomingRequestsScreen(),
+        purchaseRequests: (context) => const IncomingRequestsScreen(title: 'Buyer Requests', type: 'purchase'),
+        rentalRequests: (context) => const IncomingRequestsScreen(title: 'Rental Requests', type: 'rental'),
         notifications: (context) => const NotificationsScreen(),
 
         // Member 3: Search & Discovery — Real Screens

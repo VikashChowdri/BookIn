@@ -180,10 +180,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Settings'),
+              leading: const Icon(Icons.inbox_outlined),
+              title: const Text('Buyer Requests'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.purchaseRequests);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.handshake_outlined),
+              title: const Text('Rental Requests'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.rentalRequests);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Change Theme'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                ThemeController.showThemeSelectionDialog(context);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent),

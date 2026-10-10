@@ -170,12 +170,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: IconButton(
+            icon: const Icon(Icons.favorite_border_rounded, size: 20),
+            tooltip: 'Favorites',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.favorites),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
+          ),
+          child: IconButton(
             icon: const Icon(Icons.bookmark_border_rounded, size: 20),
             tooltip: 'Wishlist',
             onPressed: () => Navigator.pushNamed(context, AppRoutes.favorites),
           ),
         ),
-        const AppOptionsMenu(),
         const SizedBox(width: 8),
       ],
     );

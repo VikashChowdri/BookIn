@@ -325,12 +325,16 @@ class DatabaseService {
     });
   }
 
-  Stream<List<Booking>> getIncomingRequestsStream(String sellerId) {
-    return _bookingsRef
+  Stream<List<Booking>> getIncomingRequestsStream(String sellerId, {String? type}) {
+    var query = _bookingsRef
         .where('sellerId', isEqualTo: sellerId)
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snapshot) {
+        .where('status', isEqualTo: 'pending');
+        
+    if (type != null) {
+      query = query.where('type', isEqualTo: type);
+    }
+        
+    return query.snapshots().map((snapshot) {
       final list = snapshot.docs.map((doc) {
         return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
