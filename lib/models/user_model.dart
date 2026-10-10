@@ -9,6 +9,7 @@ class UserModel {
   final DateTime createdAt;
   final String? phone;
   final String? bio;
+  final List<String> blockedUsers;
 
   UserModel({
     required this.id,
@@ -19,6 +20,7 @@ class UserModel {
     required this.createdAt,
     this.phone,
     this.bio,
+    this.blockedUsers = const [],
   });
 
   UserModel copyWith({
@@ -30,6 +32,7 @@ class UserModel {
     DateTime? createdAt,
     String? phone,
     String? bio,
+    List<String>? blockedUsers,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -40,6 +43,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       phone: phone ?? this.phone,
       bio: bio ?? this.bio,
+      blockedUsers: blockedUsers ?? this.blockedUsers,
     );
   }
 
@@ -52,6 +56,7 @@ class UserModel {
       'createdAt': Timestamp.fromDate(createdAt),
       if (phone != null) 'phone': phone,
       if (bio != null) 'bio': bio,
+      'blockedUsers': blockedUsers,
     };
   }
 
@@ -67,6 +72,7 @@ class UserModel {
           : DateTime.now(),
       phone: map['phone'],
       bio: map['bio'],
+      blockedUsers: List<String>.from(map['blockedUsers'] ?? []),
     );
   }
 }

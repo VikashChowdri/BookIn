@@ -10,6 +10,7 @@ import 'search/search_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'profile/profile_screen.dart';
 import 'cart/cart_screen.dart';
+import 'chat/chat_list_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -24,20 +25,15 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const SearchScreen(),
-    const SizedBox(), // Placeholder for Add button
     const CartScreen(),
+    const ChatListScreen(),
     const ProfileScreen(),
   ];
 
   void _onTabTapped(int index) {
-    if (index == 2) {
-      // Intercept the Add button to push a modal route
-      Navigator.pushNamed(context, AppRoutes.addBook);
-    } else {
-      setState(() {
-        _currentIndex = index;
-      });
-    }
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   @override
@@ -88,14 +84,13 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(_currentIndex == 1 ? Icons.search_rounded : Icons.search_rounded),
               label: 'Search',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.add_box_outlined),
-              activeIcon: Icon(Icons.add_box_rounded),
-              label: 'Add',
+            BottomNavigationBarItem(
+              icon: Icon(_currentIndex == 2 ? Icons.shopping_bag : Icons.shopping_bag_outlined),
+              label: 'Cart',
             ),
             BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 3 ? Icons.shopping_bag : Icons.shopping_bag_outlined),
-              label: 'Cart',
+              icon: Icon(_currentIndex == 3 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded),
+              label: 'Chat',
             ),
 
             BottomNavigationBarItem(

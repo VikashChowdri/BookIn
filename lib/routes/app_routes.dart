@@ -9,6 +9,7 @@ import '../screens/auth/splash_screen.dart';
 import '../screens/auth/verification_screen.dart';
 import '../screens/common/placeholder_screen.dart';
 import '../screens/favorites/favorites_screen.dart';
+import '../screens/favorites/wishlist_screen.dart';
 import '../screens/home/add_edit_book_screen.dart';
 import '../screens/home/book_details_screen.dart';
 import '../screens/home/book_listing_screen.dart';
@@ -26,6 +27,8 @@ import '../screens/booking/booking_confirmation_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/booking/incoming_requests_screen.dart';
 import '../models/booking.dart';
+import '../models/book.dart';
+import '../screens/chat/chat_detail_screen.dart';
 
 class AppRoutes {
   // Common / Splash
@@ -59,6 +62,8 @@ class AppRoutes {
   static const String search = '/search';
   static const String searchResults = '/search-results';
   static const String favorites = '/favorites';
+  static const String wishlist = '/wishlist';
+  static const String chatDetail = '/chat-detail';
 
   static Map<String, WidgetBuilder> get routes => {
         // Common
@@ -85,6 +90,7 @@ class AppRoutes {
         // Member 3: Search & Discovery — Real Screens
         search: (context) => const SearchScreen(),
         favorites: (context) => const FavoritesScreen(),
+        wishlist: (context) => const WishlistScreen(),
       };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -169,6 +175,21 @@ class AppRoutes {
       if (userModel != null) {
         return MaterialPageRoute(
           builder: (_) => PublicProfileScreen(user: userModel),
+          settings: settings,
+        );
+      }
+    }
+
+    // Chat Detail — requires roomId and UserModel
+    if (settings.name == chatDetail) {
+      final args = settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['roomId'] != null && args['otherUser'] != null) {
+        return MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(
+            roomId: args['roomId'] as String,
+            otherUser: args['otherUser'] as UserModel,
+            contextBook: args['contextBook'] as Book?,
+          ),
           settings: settings,
         );
       }

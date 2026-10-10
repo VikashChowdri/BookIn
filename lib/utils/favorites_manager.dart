@@ -10,12 +10,15 @@ class FavoritesManager {
   static final FavoritesManager instance = FavoritesManager._();
 
   final List<Book> _favorites = [];
+  final List<Book> _wishlist = [];
   final List<Book> _recentlyViewed = [];
 
   List<Book> get favorites => List.unmodifiable(_favorites);
+  List<Book> get wishlist => List.unmodifiable(_wishlist);
   List<Book> get recentlyViewed => List.unmodifiable(_recentlyViewed);
 
   bool isFavorite(Book book) => _favorites.any((b) => b.id == book.id);
+  bool isWishlist(Book book) => _wishlist.any((b) => b.id == book.id);
 
   void toggleFavorite(Book book) {
     final bool isFav;
@@ -31,6 +34,26 @@ class FavoritesManager {
     scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
         content: Text(isFav ? 'Added to favorites' : 'Removed from favorites'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void toggleWishlist(Book book) {
+    final bool isWish;
+    if (isWishlist(book)) {
+      _wishlist.removeWhere((b) => b.id == book.id);
+      isWish = false;
+    } else {
+      _wishlist.add(book);
+      isWish = true;
+    }
+
+    scaffoldMessengerKey.currentState?.clearSnackBars();
+    scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(isWish ? 'Added to wishlist' : 'Removed from wishlist'),
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
       ),
