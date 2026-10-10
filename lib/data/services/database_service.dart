@@ -227,6 +227,15 @@ class DatabaseService {
     }
   }
 
+  Future<int> getUserBooksCount(String userId) async {
+    try {
+      final snapshot = await _booksRef.where('sellerId', isEqualTo: userId).count().get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Bookings CRUD Operations
   // ---------------------------------------------------------------------------
@@ -323,9 +332,31 @@ class DatabaseService {
   Future<void> cancelBooking(String bookingId, String bookId) async {
     try {
       await _bookingsRef.doc(bookingId).update({'status': 'cancelled'});
-      await updateBookAvailability(bookId, true);
+      await _booksRef.doc(bookId).update({'available': true, 'status': 'available'});
     } catch (e) {
       throw Exception('Failed to cancel booking: $e');
+    }
+  }
+
+  Future<int> getUserExchangesCount(String userId) async {
+    try {
+      // Get bookings where user is buyer
+      final buyerSnapshot = await _bookingsRef
+          .where('buyerId', isEqualTo: userId)
+          .where('status', isEqualTo: 'accepted')
+          .count()
+          .get();
+          
+      // Get bookings where user is seller
+      final sellerSnapshot = await _bookingsRef
+          .where('sellerId', isEqualTo: userId)
+          .where('status', isEqualTo: 'accepted')
+          .count()
+          .get();
+          
+      return (buyerSnapshot.count ?? 0) + (sellerSnapshot.count ?? 0);
+    } catch (e) {
+      return 0;
     }
   }
 

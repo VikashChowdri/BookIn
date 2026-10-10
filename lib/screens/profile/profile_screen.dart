@@ -3,6 +3,7 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
+import '../review/reviews_list_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,6 +15,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? _userModel;
   bool _isLoading = true;
+  int _booksListed = 0;
+  int _exchanges = 0;
+  double _rating = 0.0;
 
   @override
   void initState() {
@@ -25,9 +29,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = AuthService.instance.currentUser;
     if (user != null) {
       final userModel = await DatabaseService.instance.getUserProfile(user.uid);
+      final booksCount = await DatabaseService.instance.getUserBooksCount(user.uid);
+      final exchangesCount = await DatabaseService.instance.getUserExchangesCount(user.uid);
+      final ratingVal = await DatabaseService.instance.getAverageRating(user.uid, 'user');
+      
       if (mounted) {
         setState(() {
           _userModel = userModel;
+          _booksListed = booksCount;
+          _exchanges = exchangesCount;
+          _rating = ratingVal;
           _isLoading = false;
         });
       }
@@ -137,9 +148,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStatColumn('18', 'Books Listed', theme),
-                _buildStatColumn('34', 'Exchanges', theme),
-                _buildStatColumn('4.9', 'Rating', theme),
+                _buildStatColumn('$_booksListed', 'Books Listed', theme),
+                _buildStatColumn('$_exchanges', 'Exchanges', theme),
+                _buildStatColumn(_rating > 0 ? _rating.toStringAsFixed(1) : 'N/A', 'Rating', theme),
               ],
             ),
             const SizedBox(height: 28),
@@ -169,6 +180,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: const Text('Log Out', style: TextStyle(color: Colors.redAccent)),
               onTap: () => _handleSignOut(context),
             ),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 16),
+            if (user != null)
+              ReviewsListWidget(
+                targetId: user.uid,
+                targetType: 'user',
+                targetName: displayName,
+              ),
           ],
         ),
       ),
