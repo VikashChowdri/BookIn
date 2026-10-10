@@ -82,7 +82,18 @@ class ReviewsListWidget extends StatelessWidget {
                 },
               )
             else if (!isOwnAsset)
-              _buildReviewButton(context),
+              FutureBuilder<bool>(
+                future: DatabaseService.instance.hasSuccessfulBookTransaction(
+                  AuthService.instance.currentUser?.uid ?? '',
+                  targetId,
+                ),
+                builder: (context, snapshot) {
+                  final hasTransaction = snapshot.data ?? false;
+                  if (!hasTransaction) return const SizedBox.shrink();
+
+                  return _buildReviewButton(context);
+                },
+              ),
           ],
         ),
         const SizedBox(height: 8),
