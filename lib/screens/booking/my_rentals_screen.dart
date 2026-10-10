@@ -102,10 +102,11 @@ class _BookingCard extends StatelessWidget {
     final isPending = normStatus == 'pending' || normStatus.isEmpty;
     final isAccepted = normStatus == 'accepted';
     final isActive = normStatus == 'active';
+    final isCompleted = normStatus == 'completed';
 
     final Color statusColor = isPending
         ? Colors.orange
-        : (isAccepted || isActive ? Colors.green : Colors.red);
+        : (isAccepted || isActive || isCompleted ? Colors.green : Colors.red);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -174,7 +175,7 @@ class _BookingCard extends StatelessWidget {
             IconButton(
               icon: Icon(
                 Icons.confirmation_num_outlined,
-                color: (isAccepted || isActive) ? theme.colorScheme.primary : Colors.grey,
+                color: (isAccepted || isActive || isCompleted) ? theme.colorScheme.primary : Colors.grey,
               ),
               tooltip: 'Show Ticket',
               onPressed: () {
@@ -186,7 +187,7 @@ class _BookingCard extends StatelessWidget {
                 );
               },
             ),
-            if (isAccepted || isActive)
+            if (isAccepted || isActive || isCompleted)
               PopupMenuButton<String>(
                 icon: const Icon(Icons.rate_review_outlined),
                 tooltip: 'Leave Review',

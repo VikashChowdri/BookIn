@@ -292,8 +292,8 @@ class DatabaseService {
       );
       await docRef.set(newBooking.toMap());
       
-      // Optionally mark book as unavailable while pending
-      await _booksRef.doc(booking.bookId).update({'available': false});
+      // Note: Book remains available while request is pending so multiple requests can be received.
+      // Book will only be marked sold/rented when seller accepts a request.
 
       // Create a notification for the seller
       if (booking.buyerId != booking.sellerId) {
@@ -340,7 +340,10 @@ class DatabaseService {
 
   Future<void> updateBookingStatus(String bookingId, String status) async {
     try {
-      await _bookingsRef.doc(bookingId).update({'status': status});
+      await _bookingsRef.doc(bookingId).set({
+        'status': status,
+        'updatedAt': Timestamp.now(),
+      }, SetOptions(merge: true));
       if (status == 'completed') {
         final bookingDoc = await _bookingsRef.doc(bookingId).get();
         if (bookingDoc.exists) {
@@ -349,7 +352,7 @@ class DatabaseService {
           final rawType = data?['type'] as String? ?? 'purchase';
           final isRental = rawType.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
           if (isRental && bookId != null && bookId.isNotEmpty) {
-            await _booksRef.doc(bookId).update({'available': true, 'status': 'available'});
+            await _booksRef.doc(bookId).set({'available': true, 'status': 'available'}, SetOptions(merge: true));
           }
         }
       }
@@ -389,7 +392,7 @@ class DatabaseService {
           .map((doc) => Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .where((b) {
             final s = b.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
-            final matchesStatus = s.isEmpty || s == 'pending' || s == 'accepted' || s == 'active';
+            final matchesStatus = s.isEmpty || s == 'pending' || s == 'accepted' || s == 'active' || s == 'completed';
             if (!matchesStatus) return false;
 
             if (type != null) {
@@ -558,6 +561,18 @@ class DatabaseService {
     try {
       final newStatus = accept ? 'accepted' : 'rejected';
 
+      // Retrieve old booking status and type before updating
+      String? oldStatus;
+      String resolvedType = type ?? '';
+      try {
+        final bookingDoc = await _bookingsRef.doc(bookingId).get();
+        final data = bookingDoc.data() as Map<String, dynamic>?;
+        oldStatus = (data?['status'] as String?)?.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+        if (resolvedType.isEmpty) {
+          resolvedType = data?['type'] as String? ?? 'purchase';
+        }
+      } catch (_) {}
+
       // 1. Always update booking status using set with merge
       // This is atomic, safe, and succeeds even if document has partial fields or offline cache
       await _bookingsRef.doc(bookingId).set({
@@ -565,25 +580,27 @@ class DatabaseService {
         'updatedAt': Timestamp.now(),
       }, SetOptions(merge: true));
 
-      // Resolve rental vs purchase
-      String resolvedType = type ?? '';
-      if (resolvedType.isEmpty) {
-        try {
-          final bookingDoc = await _bookingsRef.doc(bookingId).get();
-          final data = bookingDoc.data() as Map<String, dynamic>?;
-          resolvedType = data?['type'] as String? ?? 'purchase';
-        } catch (_) {}
-      }
       final isRental = resolvedType.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase() == 'rental';
 
       // 2. Safely update book document if bookId is provided
       if (bookId.isNotEmpty) {
         try {
-          final newBookStatus = accept ? (isRental ? 'rented' : 'sold') : 'available';
-          await _booksRef.doc(bookId).set({
-            'available': !accept,
-            'status': newBookStatus,
-          }, SetOptions(merge: true));
+          if (accept) {
+            final newBookStatus = isRental ? 'rented' : 'sold';
+            await _booksRef.doc(bookId).set({
+              'available': false,
+              'status': newBookStatus,
+            }, SetOptions(merge: true));
+          } else {
+            // Rejecting: only reset book to 'available' if THIS booking was previously accepted
+            // If it was pending, do not modify book so any other accepted booking remains intact
+            if (oldStatus == 'accepted') {
+              await _booksRef.doc(bookId).set({
+                'available': true,
+                'status': 'available',
+              }, SetOptions(merge: true));
+            }
+          }
         } catch (e) {
           debugPrint('Notice: book status update skipped: $e');
         }

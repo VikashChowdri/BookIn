@@ -14,7 +14,17 @@ class TicketScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     final normStatus = booking.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
-    final bool isReady = normStatus == 'accepted' || normStatus == 'active';
+    final bool isCompleted = normStatus == 'completed';
+    final bool isActive = normStatus == 'active';
+    final bool isAccepted = normStatus == 'accepted';
+    final bool isReady = isAccepted || isActive;
+
+    final Color badgeColor = isCompleted
+        ? Colors.teal
+        : (isActive ? Colors.green : (isAccepted ? Colors.blue : Colors.orange));
+    final String badgeText = isCompleted
+        ? 'COMPLETED'
+        : (isActive ? 'RENTAL ACTIVE' : (isAccepted ? 'READY FOR PICKUP' : 'PENDING APPROVAL'));
 
     return Scaffold(
       backgroundColor: theme.colorScheme.primaryContainer,
@@ -39,16 +49,15 @@ class TicketScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      width: 120.0,
-                      height: 25.0,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(30.0),
-                        border: Border.all(width: 1.0, color: isReady ? Colors.green : Colors.orange),
+                        border: Border.all(width: 1.0, color: badgeColor),
                       ),
                       child: Center(
                         child: Text(
-                          isReady ? 'READY FOR PICKUP' : 'PENDING APPROVAL',
-                          style: TextStyle(color: isReady ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold),
+                          badgeText,
+                          style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -82,17 +91,26 @@ class TicketScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ticketDetailRow('OWNER', booking.sellerId.substring(0, 5).toUpperCase(), 'DATE', DateFormat('MMM dd, yyyy').format(booking.startDate)),
+                      _ticketDetailRow('OWNER', booking.sellerId.substring(0, booking.sellerId.length > 5 ? 5 : booking.sellerId.length).toUpperCase(), 'DATE', DateFormat('MMM dd, yyyy').format(booking.startDate)),
                       const SizedBox(height: 10),
                       _ticketDetailRow('PRICE', '₹${booking.totalPrice.toStringAsFixed(0)}', 'STATUS', booking.status.toUpperCase()),
                     ],
                   ),
                 ),
                 const Spacer(),
-                if (isReady) ...[
+                if (isCompleted) ...[
+                  const Icon(Icons.check_circle_outline, size: 80, color: Colors.teal),
+                  const SizedBox(height: 12),
                   const Text(
-                    'Show this to the owner to scan',
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
+                    'Handover Verified!\nBook has been received.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                ] else if (isReady) ...[
+                  Text(
+                    isActive ? 'Show to owner when returning' : 'Show this to the owner to scan for pickup',
+                    style: const TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                   const SizedBox(height: 10),
                   QrImageView(
@@ -103,7 +121,7 @@ class TicketScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    booking.id.substring(0, 10).toUpperCase(),
+                    booking.id.substring(0, booking.id.length > 10 ? 10 : booking.id.length).toUpperCase(),
                     style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, letterSpacing: 2),
                   ),
                 ] else ...[
