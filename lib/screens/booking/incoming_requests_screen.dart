@@ -100,11 +100,16 @@ class _RequestCardState extends State<_RequestCard> {
 
   bool get _isRental => _normalizedType == 'rental';
 
-  bool get _isAcceptedOrActive =>
-      _normalizedStatus == 'accepted' || _normalizedStatus == 'active';
+  bool get _isAccepted => _normalizedStatus == 'accepted';
+
+  bool get _isActive => _normalizedStatus == 'active';
+
+  bool get _isCompleted => _normalizedStatus == 'completed';
+
+  bool get _isQrScanned => _isActive || _isCompleted;
 
   bool get _isTerminal =>
-      _normalizedStatus == 'completed' ||
+      _isCompleted ||
       _normalizedStatus == 'rejected' ||
       _normalizedStatus == 'cancelled';
 
@@ -157,6 +162,32 @@ class _RequestCardState extends State<_RequestCard> {
   void _handleRequest(bool accept) async {
     setState(() => _isLoading = true);
     try {
+      if (accept) {
+        // Prevent accepting if the book has already been marked as sold or rented
+        try {
+          final bookDoc = await FirebaseFirestore.instance
+              .collection(AppConstants.booksCollection)
+              .doc(widget.booking.bookId)
+              .get();
+          if (bookDoc.exists) {
+            final bookData = bookDoc.data() as Map<String, dynamic>;
+            final bool isAvailable = bookData['available'] ?? true;
+            final String currentBookStatus = bookData['status'] ?? 'available';
+            if (!isAvailable && (currentBookStatus == 'sold' || currentBookStatus == 'rented')) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Notice: This book is already $currentBookStatus from another accepted request.'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
       await DatabaseService.instance.processBookingResponse(
         widget.booking.id,
         widget.booking.bookId,
@@ -218,12 +249,21 @@ class _RequestCardState extends State<_RequestCard> {
     // Status chip colors and text
     final Color statusColor;
     final String statusText;
-    if (_isAcceptedOrActive) {
+    if (_isCompleted) {
+      statusColor = Colors.teal;
+      statusText = _isRental ? 'COMPLETED (RETURNED)' : 'SOLD (PICKED UP)';
+    } else if (_isActive) {
       statusColor = Colors.green;
-      statusText = _normalizedStatus == 'accepted' ? 'ACCEPTED' : 'ACTIVE';
-    } else if (_isTerminal) {
+      statusText = 'RENTED (ACTIVE)';
+    } else if (_isAccepted) {
+      statusColor = Colors.blue;
+      statusText = 'ACCEPTED (AWAITING PICKUP)';
+    } else if (_normalizedStatus == 'rejected') {
+      statusColor = Colors.red;
+      statusText = 'REJECTED';
+    } else if (_normalizedStatus == 'cancelled') {
       statusColor = Colors.grey;
-      statusText = _normalizedStatus.toUpperCase();
+      statusText = 'CANCELLED';
     } else {
       statusColor = Colors.orange;
       statusText = 'PENDING';
@@ -386,6 +426,64 @@ class _RequestCardState extends State<_RequestCard> {
                 ),
               ],
             ),
+            if (_isQrScanned)
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: (_isActive ? Colors.green : Colors.teal).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: (_isActive ? Colors.green : Colors.teal).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.verified, size: 18, color: _isActive ? Colors.green : Colors.teal),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _isActive
+                            ? 'QR Code Verified: Book is rented & handed over. Accept and Reject are disabled.'
+                            : (_isRental
+                                ? 'Rental Completed: Book returned successfully. Accept and Reject are disabled.'
+                                : 'QR Code Verified: Book is sold & picked up. Accept and Reject are disabled.'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _isActive ? Colors.green.shade800 : Colors.teal.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (_isAccepted)
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.qr_code_scanner, size: 18, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Request accepted! Scan the buyer\'s QR pass upon pickup to confirm handover.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 14),
             Wrap(
               spacing: 10,
@@ -393,37 +491,65 @@ class _RequestCardState extends State<_RequestCard> {
               alignment: WrapAlignment.end,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                // Reject button - ALWAYS rendered
+                // Reject button - disabled when QR code is scanned or terminal
                 OutlinedButton.icon(
-                  onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
-                  icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                  label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: (_isQrScanned || _isTerminal || _isLoading)
+                      ? null
+                      : () => _showConfirmationDialog(false),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: Text(
+                    _isQrScanned
+                        ? 'Reject (Disabled)'
+                        : (_isAccepted ? 'Cancel Request' : 'Reject'),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red, width: 1.5),
+                    side: BorderSide(
+                      color: (_isQrScanned || _isTerminal) ? Colors.grey.shade400 : Colors.red,
+                      width: 1.5,
+                    ),
+                    disabledForegroundColor: Colors.grey,
                   ),
                 ),
-                // Accept button - ALWAYS rendered
+
+                // Accept button - disabled when accepted or QR code is scanned
                 ElevatedButton.icon(
-                  onPressed: _isLoading ? null : () => _handleRequest(true),
+                  onPressed: (_isAccepted || _isQrScanned || _isTerminal || _isLoading)
+                      ? null
+                      : () => _handleRequest(true),
                   icon: _isLoading
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.check, size: 16, color: Colors.white),
+                      : Icon(
+                          (_isAccepted || _isQrScanned) ? Icons.check_circle : Icons.check,
+                          size: 16,
+                        ),
                   label: Text(
-                    _isRental ? 'Accept Rental' : 'Accept Sale',
+                    _isQrScanned
+                        ? (_isRental ? (_isActive ? 'Rented (Active)' : 'Completed') : 'Sold')
+                        : (_isAccepted
+                            ? 'Accepted'
+                            : (_isRental ? 'Accept Rental' : 'Accept Sale')),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: (_isAccepted || _isQrScanned)
+                        ? Colors.green.shade100
+                        : Colors.grey.shade300,
+                    disabledForegroundColor: (_isAccepted || _isQrScanned)
+                        ? Colors.green.shade800
+                        : Colors.grey.shade600,
                   ),
                 ),
-                // Scan QR code button - shown when booking is accepted or active
-                if (_isAcceptedOrActive)
+
+                // Scan QR code button for pickup (shown when accepted, awaiting pickup)
+                if (_isAccepted)
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -431,7 +557,7 @@ class _RequestCardState extends State<_RequestCard> {
                         MaterialPageRoute(
                           builder: (_) => QRScannerScreen(
                             expectedBookingId: widget.booking.id,
-                            nextStatus: _normalizedStatus == 'accepted' ? 'active' : 'completed',
+                            nextStatus: _isRental ? 'active' : 'completed',
                             onSuccess: () {
                               // Screen will automatically rebuild when stream updates
                             },
@@ -440,9 +566,40 @@ class _RequestCardState extends State<_RequestCard> {
                       );
                     },
                     icon: const Icon(Icons.qr_code_scanner, size: 16),
-                    label: Text(_normalizedStatus == 'accepted' ? 'Scan QR' : 'Scan to Complete'),
+                    label: const Text(
+                      'Scan QR (Pickup)',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+
+                // Scan QR code button for return (shown when rental is active)
+                if (_isActive && _isRental)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => QRScannerScreen(
+                            expectedBookingId: widget.booking.id,
+                            nextStatus: 'completed',
+                            onSuccess: () {
+                              // Screen will automatically rebuild when stream updates
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.qr_code_scanner, size: 16),
+                    label: const Text(
+                      'Scan QR (Return)',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.secondary,
                       foregroundColor: Colors.white,
                     ),
                   ),

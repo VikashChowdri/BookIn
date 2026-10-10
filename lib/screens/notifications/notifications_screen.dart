@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/notification_item.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
+import '../../core/constants/app_constants.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -111,6 +113,41 @@ class _NotificationTileState extends State<_NotificationTile> {
       
       if (booking == null) {
         throw Exception('Booking not found.');
+      }
+
+      final normStatus = booking.status.replaceAll(RegExp(r'[^a-zA-Z]'), '').toLowerCase();
+      if (normStatus == 'active' || normStatus == 'completed') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This booking has already been verified and completed.')),
+          );
+        }
+        return;
+      }
+
+      if (accept) {
+        try {
+          final bookDoc = await FirebaseFirestore.instance
+              .collection(AppConstants.booksCollection)
+              .doc(booking.bookId)
+              .get();
+          if (bookDoc.exists) {
+            final bookData = bookDoc.data() as Map<String, dynamic>;
+            final bool isAvailable = bookData['available'] ?? true;
+            final String currentBookStatus = bookData['status'] ?? 'available';
+            if (!isAvailable && (currentBookStatus == 'sold' || currentBookStatus == 'rented')) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Notice: This book is already $currentBookStatus from another accepted request.'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+              return;
+            }
+          }
+        } catch (_) {}
       }
 
       await DatabaseService.instance.respondToBookingRequest(
