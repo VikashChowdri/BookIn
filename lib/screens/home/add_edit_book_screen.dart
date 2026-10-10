@@ -146,8 +146,10 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
       }
 
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             _isEditMode
