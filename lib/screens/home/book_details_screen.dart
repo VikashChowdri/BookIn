@@ -493,7 +493,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
             label: const Text('Message'),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
