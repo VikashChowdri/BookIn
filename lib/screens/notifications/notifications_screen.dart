@@ -178,6 +178,12 @@ class _NotificationTileState extends State<_NotificationTile> {
         iconColor = theme.colorScheme.primary;
     }
 
+    final bool canRespond = widget.notif.relatedId != null &&
+        widget.notif.relatedId!.isNotEmpty &&
+        !normType.contains('accepted') &&
+        !normType.contains('rejected') &&
+        normType != 'chat_message';
+
     return Card(
       elevation: isUnread ? 2 : 0,
       color: isUnread ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5) : theme.cardColor,
@@ -223,26 +229,28 @@ class _NotificationTileState extends State<_NotificationTile> {
               widget.notif.body,
               style: theme.textTheme.bodyMedium,
             ),
-            if (normType == 'booking_request') ...[
+            if (canRespond) ...[
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
+                  OutlinedButton.icon(
                     onPressed: _isLoading ? null : () => _handleBookingAction(false),
+                    icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                    label: const Text('Reject'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red, width: 1.5),
                     ),
-                    child: const Text('Reject'),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: _isLoading ? null : () => _handleBookingAction(true),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                    child: _isLoading
+                    icon: _isLoading
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Accept'),
+                        : const Icon(Icons.check, size: 16, color: Colors.white),
+                    label: const Text('Accept'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                   ),
                 ],
               ),

@@ -387,19 +387,43 @@ class _RequestCardState extends State<_RequestCard> {
               ],
             ),
             const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (_isAcceptedOrActive) ...[
-                  OutlinedButton(
-                    onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red, width: 1.5),
-                    ),
-                    child: const Text('Reject'),
+                // Reject button - ALWAYS rendered
+                OutlinedButton.icon(
+                  onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
+                  icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                  label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red, width: 1.5),
                   ),
-                  const SizedBox(width: 10),
+                ),
+                // Accept button - ALWAYS rendered
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : () => _handleRequest(true),
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check, size: 16, color: Colors.white),
+                  label: Text(
+                    _isRental ? 'Accept Rental' : 'Accept Sale',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                // Scan QR code button - shown when booking is accepted or active
+                if (_isAcceptedOrActive)
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -415,53 +439,13 @@ class _RequestCardState extends State<_RequestCard> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.qr_code_scanner, size: 18),
-                    label: Text(_normalizedStatus == 'accepted' ? 'Scan to Mark Active' : 'Scan to Complete'),
+                    icon: const Icon(Icons.qr_code_scanner, size: 16),
+                    label: Text(_normalizedStatus == 'accepted' ? 'Scan QR' : 'Scan to Complete'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: Colors.white,
                     ),
                   ),
-                ] else if (_isTerminal) ...[
-                  Text(
-                    'Status: $statusText',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: _isLoading ? null : () => _handleRequest(true),
-                    child: Text(_isRental ? 'Re-accept Rental' : 'Re-accept Sale'),
-                  ),
-                ] else ...[
-                  // Always show Reject and Accept for any pending or incoming state!
-                  OutlinedButton(
-                    onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red, width: 1.5),
-                    ),
-                    child: const Text('Reject'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : () => _handleRequest(true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : Text(_isRental ? 'Accept Rental' : 'Accept Sale'),
-                  ),
-                ],
               ],
             ),
           ],
