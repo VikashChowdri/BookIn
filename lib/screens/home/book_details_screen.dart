@@ -7,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
+import '../../core/animations/app_animations.dart';
 import '../../utils/favorites_manager.dart';
 import '../../utils/cart_manager.dart';
 import '../review/reviews_list_widget.dart';
@@ -14,8 +15,9 @@ import '../../data/services/chat_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
+  final String? heroTag;
 
-  const BookDetailsScreen({super.key, required this.book});
+  const BookDetailsScreen({super.key, required this.book, this.heroTag});
 
   @override
   State<BookDetailsScreen> createState() => _BookDetailsScreenState();
@@ -119,14 +121,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           padding: const EdgeInsets.all(8),
           child: CircleAvatar(
             backgroundColor: Colors.black.withValues(alpha: 0.4),
-            child: IconButton(
-              icon: Icon(
-                _isWishlist
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: _isWishlist ? theme.colorScheme.primary : Colors.white,
-              ),
-              onPressed: () {
+            child: PopHeartIcon(
+              isSelected: _isWishlist,
+              activeIcon: Icons.bookmark_rounded,
+              inactiveIcon: Icons.bookmark_border_rounded,
+              activeColor: theme.colorScheme.primary,
+              inactiveColor: Colors.white,
+              size: 22,
+              onTap: () {
                 setState(() {
                   FavoritesManager.instance.toggleWishlist(book);
                 });
@@ -138,14 +140,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           padding: const EdgeInsets.only(right: 8),
           child: CircleAvatar(
             backgroundColor: Colors.black.withValues(alpha: 0.4),
-            child: IconButton(
-              icon: Icon(
-                _isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                color: _isFavorite ? AppColors.error : Colors.white,
-              ),
-              onPressed: () {
+            child: PopHeartIcon(
+              isSelected: _isFavorite,
+              activeIcon: Icons.favorite_rounded,
+              inactiveIcon: Icons.favorite_border_rounded,
+              activeColor: AppColors.error,
+              inactiveColor: Colors.white,
+              size: 22,
+              onTap: () {
                 setState(() {
                   FavoritesManager.instance.toggleFavorite(book);
                 });
@@ -177,22 +179,26 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           fit: StackFit.expand,
           children: [
             // Book cover image
-            CachedNetworkImage(
-              imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
+            Hero(
+              tag: widget.heroTag ?? 'book_cover_${book.id}',
+              child: CachedNetworkImage(
+                imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
+                fit: BoxFit.cover,
+                placeholder: (context, url) => ShimmerEffect(
+                  baseColor: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                  highlightColor: isDark ? AppColors.darkSurface : AppColors.shimmerHighlight,
+                  child: Container(
+                    color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                  ),
                 ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-                child: Center(
-                  child: Icon(
-                    Icons.menu_book_rounded,
-                    size: 80,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                errorWidget: (context, url, error) => Container(
+                  color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                  child: Center(
+                    child: Icon(
+                      Icons.menu_book_rounded,
+                      size: 80,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                    ),
                   ),
                 ),
               ),
@@ -660,33 +666,36 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       listenable: CartManager.instance,
                       builder: (context, _) {
                         final inCart = CartManager.instance.isInCart(book);
-                        return OutlinedButton.icon(
-                          onPressed: book.available
-                              ? () {
-                                  if (inCart) {
-                                    // Pop the details screen so they can click the Cart tab
-                                    Navigator.pop(context);
+                        return BounceTap(
+                          scaleFactor: 0.96,
+                          child: OutlinedButton.icon(
+                            onPressed: book.available
+                                ? () {
+                                    if (inCart) {
+                                      // Pop the details screen so they can click the Cart tab
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Please use the Cart tab at the bottom to view your cart.'),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    CartManager.instance.addToCart(book);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Please use the Cart tab at the bottom to view your cart.'),
+                                        content: Text('Added to Cart!'),
                                         behavior: SnackBarBehavior.floating,
                                       ),
                                     );
-                                    return;
                                   }
-                                  CartManager.instance.addToCart(book);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Added to Cart!'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              : null,
-                          icon: Icon(inCart ? Icons.shopping_cart_checkout_rounded : Icons.add_shopping_cart_rounded, size: 18),
-                          label: Text(inCart ? 'Go to Cart' : 'Add to Cart'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 50),
+                                : null,
+                            icon: Icon(inCart ? Icons.shopping_cart_checkout_rounded : Icons.add_shopping_cart_rounded, size: 18),
+                            label: Text(inCart ? 'Go to Cart' : 'Add to Cart'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 50),
+                            ),
                           ),
                         );
                       },
@@ -696,21 +705,24 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   const SizedBox(width: 8),
                 if (book.rentPrice > 0) ...[
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: book.available
-                          ? () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => BookingDialog(book: book),
-                              );
-                            }
-                          : null,
-                      icon: const Icon(Icons.calendar_month_rounded, size: 18),
-                      label: const Text('Rent'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 50),
-                        disabledBackgroundColor:
-                            theme.colorScheme.surfaceContainerHighest,
+                    child: BounceTap(
+                      scaleFactor: 0.96,
+                      child: ElevatedButton.icon(
+                        onPressed: book.available
+                            ? () {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => BookingDialog(book: book),
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                        label: const Text('Rent'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, 50),
+                          disabledBackgroundColor:
+                              theme.colorScheme.surfaceContainerHighest,
+                        ),
                       ),
                     ),
                   ),

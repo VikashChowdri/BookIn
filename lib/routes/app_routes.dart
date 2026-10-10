@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/animations/app_animations.dart';
 import '../models/book.dart';
 import '../models/user_model.dart';
 import '../screens/auth/forgot_password_screen.dart';
@@ -95,9 +96,10 @@ class AppRoutes {
     // Edit Book — requires Book argument
     if (settings.name == editBook) {
       final book = settings.arguments as Book?;
-      return MaterialPageRoute(
-        builder: (_) => AddEditBookScreen(book: book),
+      return AppPageRoute(
+        child: AddEditBookScreen(book: book),
         settings: settings,
+        direction: AxisDirection.up,
       );
     }
 
@@ -105,9 +107,10 @@ class AppRoutes {
     if (settings.name == bookingConfirmation) {
       final booking = settings.arguments as Booking?;
       if (booking != null) {
-        return MaterialPageRoute(
-          builder: (_) => BookingConfirmationScreen(booking: booking),
+        return AppPageRoute(
+          child: BookingConfirmationScreen(booking: booking),
           settings: settings,
+          direction: AxisDirection.up,
         );
       }
     }
@@ -115,8 +118,8 @@ class AppRoutes {
     // Book Listing — optional category argument
     if (settings.name == bookListing) {
       final args = settings.arguments as Map<String, dynamic>? ?? {};
-      return MaterialPageRoute(
-        builder: (_) => BookListingScreen(
+      return AppPageRoute(
+        child: BookListingScreen(
           initialCategory: args['category'] as String?,
         ),
         settings: settings,
@@ -126,8 +129,8 @@ class AppRoutes {
     // Search Results — requires query arguments
     if (settings.name == searchResults) {
       final args = settings.arguments as Map<String, dynamic>? ?? {};
-      return MaterialPageRoute(
-        builder: (_) => SearchResultsScreen(
+      return AppPageRoute(
+        child: SearchResultsScreen(
           query: args['query'] as String? ?? '',
           category: args['category'] as String?,
           department: args['department'] as String?,
@@ -140,8 +143,8 @@ class AppRoutes {
     // Verification — requires email argument
     if (settings.name == verification) {
       final args = settings.arguments as Map<String, dynamic>? ?? {};
-      return MaterialPageRoute(
-        builder: (_) => VerificationScreen(
+      return AppPageRoute(
+        child: VerificationScreen(
           email: args['email'] as String? ?? '',
         ),
         settings: settings,
@@ -152,13 +155,13 @@ class AppRoutes {
     if (settings.name == bookDetails) {
       final book = settings.arguments as Book?;
       if (book != null) {
-        return MaterialPageRoute(
-          builder: (_) => BookDetailsScreen(book: book),
+        return AppPageRoute(
+          child: BookDetailsScreen(book: book),
           settings: settings,
         );
       }
-      return MaterialPageRoute(
-        builder: (_) => const PlaceholderScreen(
+      return AppPageRoute(
+        child: const PlaceholderScreen(
           title: 'Book Details',
           subtitle: 'No book data provided.',
           icon: Icons.menu_book_rounded,
@@ -171,8 +174,8 @@ class AppRoutes {
     if (settings.name == publicProfile) {
       final userModel = settings.arguments as UserModel?;
       if (userModel != null) {
-        return MaterialPageRoute(
-          builder: (_) => PublicProfileScreen(user: userModel),
+        return AppPageRoute(
+          child: PublicProfileScreen(user: userModel),
           settings: settings,
         );
       }
@@ -182,8 +185,8 @@ class AppRoutes {
     if (settings.name == chatDetail) {
       final args = settings.arguments as Map<String, dynamic>?;
       if (args != null && args['roomId'] != null && args['otherUser'] != null) {
-        return MaterialPageRoute(
-          builder: (_) => ChatDetailScreen(
+        return AppPageRoute(
+          child: ChatDetailScreen(
             roomId: args['roomId'] as String,
             otherUser: args['otherUser'] as UserModel,
             contextBook: args['contextBook'] as Book?,
@@ -196,12 +199,17 @@ class AppRoutes {
     // Fall back to static routes map
     final builder = routes[settings.name];
     if (builder != null) {
-      return MaterialPageRoute(builder: builder, settings: settings);
+      final isModal = settings.name == addBook;
+      return AppPageRoute(
+        child: Builder(builder: builder),
+        settings: settings,
+        direction: isModal ? AxisDirection.up : AxisDirection.left,
+      );
     }
 
     // 404
-    return MaterialPageRoute(
-      builder: (_) => Scaffold(
+    return AppPageRoute(
+      child: Scaffold(
         appBar: AppBar(title: const Text('Page Not Found')),
         body: Center(
           child: Text('No route defined for ${settings.name}'),
