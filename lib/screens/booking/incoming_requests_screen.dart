@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
+import 'qr_scanner_screen.dart';
 
 class IncomingRequestsScreen extends StatelessWidget {
   final String title;
@@ -259,19 +260,44 @@ class _RequestCardState extends State<_RequestCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                OutlinedButton(
-                  onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Reject'),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : () => _showConfirmationDialog(true),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                  child: _isLoading
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Accept Sale'),
-                ),
+                if (widget.booking.status == 'pending') ...[
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Reject'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : () => _showConfirmationDialog(true),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                    child: _isLoading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(widget.booking.type == 'rental' ? 'Accept Rental' : 'Accept Sale'),
+                  ),
+                ] else if (widget.booking.status == 'accepted' || widget.booking.status == 'active') ...[
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => QRScannerScreen(
+                            expectedBookingId: widget.booking.id,
+                            nextStatus: widget.booking.status == 'accepted' ? 'active' : 'completed',
+                            onSuccess: () {
+                              // Screen will automatically rebuild when stream updates
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: Text(widget.booking.status == 'accepted' ? 'Scan to Mark Active' : 'Scan to Complete'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
