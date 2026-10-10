@@ -311,11 +311,12 @@ class DatabaseService {
     }
   }
 
-  Stream<List<Booking>> getUserBookingsStream(String userId) {
-    return _bookingsRef
-        .where('buyerId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
+  Stream<List<Booking>> getUserBookingsStream(String userId, {String? type}) {
+    var query = _bookingsRef.where('buyerId', isEqualTo: userId);
+    if (type != null) {
+      query = query.where('type', isEqualTo: type);
+    }
+    return query.snapshots().map((snapshot) {
       final list = snapshot.docs.map((doc) {
         return Booking.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();

@@ -164,10 +164,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.history_rounded),
-              title: const Text('Exchange History'),
+              leading: const Icon(Icons.shopping_bag_outlined),
+              title: const Text('My Purchases'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.myPurchases);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('My Rentals'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.myRentals);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined),

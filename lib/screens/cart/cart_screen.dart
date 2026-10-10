@@ -34,6 +34,8 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _isCheckingOut = true);
 
     try {
+      final String groupId = DateTime.now().millisecondsSinceEpoch.toString();
+
       for (final book in items) {
         final booking = Booking(
           id: '', // Generated in service
@@ -46,6 +48,7 @@ class _CartScreenState extends State<CartScreen> {
           endDate: DateTime.now(),
           status: 'pending',
           type: 'purchase', // Cart is only for purchasing
+          groupId: groupId,
           totalPrice: book.price,
           createdAt: DateTime.now(),
         );
@@ -58,7 +61,7 @@ class _CartScreenState extends State<CartScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Checkout successful! Requests sent to sellers.')),
       );
-      Navigator.pushReplacementNamed(context, AppRoutes.myBookings);
+      Navigator.pushReplacementNamed(context, AppRoutes.myPurchases);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
