@@ -57,7 +57,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('My Profile')),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('My Profile'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -71,6 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('My Profile'),
         actions: [
           IconButton(

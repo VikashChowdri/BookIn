@@ -79,6 +79,7 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Cart'),
       ),
       body: ListenableBuilder(
