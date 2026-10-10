@@ -577,13 +577,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Price',
+                book.price > 0 ? 'Price' : 'Rent Price',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
-                '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}',
+                book.price > 0
+                    ? '${AppConstants.defaultCurrencySymbol}${book.price.toStringAsFixed(0)}'
+                    : '${AppConstants.defaultCurrencySymbol}${book.rentPrice.toStringAsFixed(0)}/day',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.primary,
@@ -598,34 +600,36 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           Expanded(
             child: Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: book.available
-                        ? () {
-                            if (CartManager.instance.isInCart(book)) {
+                if (book.price > 0)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: book.available
+                          ? () {
+                              if (CartManager.instance.isInCart(book)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Already in cart!')),
+                                );
+                                return;
+                              }
+                              CartManager.instance.addToCart(book);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Already in cart!')),
+                                const SnackBar(
+                                  content: Text('Added to Cart!'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
                               );
-                              return;
                             }
-                            CartManager.instance.addToCart(book);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Added to Cart!'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                    label: const Text('Add to Cart'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 50),
+                          : null,
+                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                      label: const Text('Add to Cart'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                      ),
                     ),
                   ),
-                ),
-                if (book.rentPrice > 0) ...[
+                if (book.price > 0 && book.rentPrice > 0)
                   const SizedBox(width: 8),
+                if (book.rentPrice > 0) ...[
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: book.available
