@@ -245,6 +245,7 @@ class DatabaseService {
         endDate: booking.endDate,
         totalPrice: booking.totalPrice,
         status: booking.status,
+        type: booking.type,
         createdAt: booking.createdAt,
       );
       await docRef.set(newBooking.toMap());
@@ -404,7 +405,8 @@ class DatabaseService {
         // If accepted, fetch booking type to update book status appropriately
         final bookingDoc = await _bookingsRef.doc(bookingId).get();
         if (bookingDoc.exists) {
-          final type = bookingDoc.data()?['type'] as String? ?? 'purchase';
+          final data = bookingDoc.data() as Map<String, dynamic>?;
+          final type = data?['type'] as String? ?? 'purchase';
           final newBookStatus = type == 'rental' ? 'rented' : 'sold';
           await _booksRef.doc(bookId).update({'status': newBookStatus});
         }
