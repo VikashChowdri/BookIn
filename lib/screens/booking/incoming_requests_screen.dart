@@ -126,17 +126,18 @@ class _RequestCardState extends State<_RequestCard> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      barrierDismissible: true,
+      builder: (dialogCtx) {
         return AlertDialog(
           title: Text(title),
           content: Text(message),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accept ? Colors.green : Colors.red,
                 foregroundColor: Colors.white,
@@ -162,11 +163,12 @@ class _RequestCardState extends State<_RequestCard> {
         widget.booking.buyerId,
         widget.booking.bookTitle,
         accept,
+        type: widget.booking.type,
       );
 
-      // Find if there's any related unread notification for the seller and mark it read
+      // Silently update any related seller notifications
       final sellerId = AuthService.instance.currentUser?.uid;
-      if (sellerId != null) {
+      if (sellerId != null && widget.booking.id.isNotEmpty) {
         FirebaseFirestore.instance
             .collection(AppConstants.notificationsCollection)
             .where('userId', isEqualTo: sellerId)
@@ -174,10 +176,10 @@ class _RequestCardState extends State<_RequestCard> {
             .get()
             .then((snapshot) {
           for (var doc in snapshot.docs) {
-            doc.reference.update({
+            doc.reference.set({
               'isRead': true,
               'type': accept ? 'booking_request_accepted' : 'booking_request_rejected',
-            });
+            }, SetOptions(merge: true));
           }
         }).catchError((_) {});
       }
@@ -190,13 +192,18 @@ class _RequestCardState extends State<_RequestCard> {
           SnackBar(
             content: Text(successMsg),
             backgroundColor: accept ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     } finally {
@@ -384,6 +391,15 @@ class _RequestCardState extends State<_RequestCard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (_isAcceptedOrActive) ...[
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                  const SizedBox(width: 10),
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -415,6 +431,11 @@ class _RequestCardState extends State<_RequestCard> {
                       fontStyle: FontStyle.italic,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: _isLoading ? null : () => _handleRequest(true),
+                    child: Text(_isRental ? 'Re-accept Rental' : 'Re-accept Sale'),
+                  ),
                 ] else ...[
                   // Always show Reject and Accept for any pending or incoming state!
                   OutlinedButton(
@@ -427,7 +448,7 @@ class _RequestCardState extends State<_RequestCard> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: _isLoading ? null : () => _showConfirmationDialog(true),
+                    onPressed: _isLoading ? null : () => _handleRequest(true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,

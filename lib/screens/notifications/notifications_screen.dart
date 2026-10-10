@@ -120,6 +120,7 @@ class _NotificationTileState extends State<_NotificationTile> {
         booking.buyerId,
         booking.bookTitle,
         accept,
+        type: booking.type,
       );
 
       if (mounted) {
