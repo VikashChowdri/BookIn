@@ -68,9 +68,9 @@ class ChatService {
     });
   }
 
-  Future<void> sendMessage(String roomId, String otherUserId, String text, {String? attachedBookId, String? attachedBookTitle, String? attachedBookImageUrl}) async {
+  Future<void> sendMessage(String roomId, String otherUserId, String text, {String? attachedBookId, String? attachedBookTitle, String? attachedBookImageUrl, String? chatImageUrl}) async {
     final currentUserId = AuthService.instance.currentUser?.uid;
-    if (currentUserId == null || (text.trim().isEmpty && attachedBookId == null)) return;
+    if (currentUserId == null || (text.trim().isEmpty && attachedBookId == null && chatImageUrl == null)) return;
 
     final roomDoc = _firestore.collection('chats').doc(roomId);
     
@@ -82,9 +82,15 @@ class ChatService {
       if (attachedBookId != null) 'attachedBookId': attachedBookId,
       if (attachedBookTitle != null) 'attachedBookTitle': attachedBookTitle,
       if (attachedBookImageUrl != null) 'attachedBookImageUrl': attachedBookImageUrl,
+      if (chatImageUrl != null) 'chatImageUrl': chatImageUrl,
     });
 
-    final lastMsgText = attachedBookTitle != null ? 'Shared a book: $attachedBookTitle' : text.trim();
+    String lastMsgText = text.trim();
+    if (chatImageUrl != null && text.trim().isEmpty) {
+      lastMsgText = 'Sent an image 📸';
+    } else if (attachedBookTitle != null) {
+      lastMsgText = 'Shared a book: $attachedBookTitle';
+    }
 
     // Update room
     await roomDoc.update({

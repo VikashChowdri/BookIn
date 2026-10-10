@@ -8,6 +8,7 @@ class Message {
   final String? attachedBookId;
   final String? attachedBookTitle;
   final String? attachedBookImageUrl;
+  final String? chatImageUrl;
 
   Message({
     required this.id,
@@ -17,6 +18,7 @@ class Message {
     this.attachedBookId,
     this.attachedBookTitle,
     this.attachedBookImageUrl,
+    this.chatImageUrl,
   });
 
   factory Message.fromMap(String id, Map<String, dynamic> data) {
@@ -28,6 +30,7 @@ class Message {
       attachedBookId: data['attachedBookId'],
       attachedBookTitle: data['attachedBookTitle'],
       attachedBookImageUrl: data['attachedBookImageUrl'],
+      chatImageUrl: data['chatImageUrl'],
     );
   }
 
@@ -39,6 +42,7 @@ class Message {
       if (attachedBookId != null) 'attachedBookId': attachedBookId,
       if (attachedBookTitle != null) 'attachedBookTitle': attachedBookTitle,
       if (attachedBookImageUrl != null) 'attachedBookImageUrl': attachedBookImageUrl,
+      if (chatImageUrl != null) 'chatImageUrl': chatImageUrl,
     };
   }
 }
