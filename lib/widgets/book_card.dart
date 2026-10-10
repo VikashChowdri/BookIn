@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../core/animations/app_animations.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../models/book.dart';
@@ -32,59 +33,60 @@ class BookCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-        boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        child: InkWell(
+    return BounceTap(
+      onTap: onTap,
+      scaleFactor: 0.98,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Thumbnail
-                ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(AppConstants.radiusSmall),
-                  child: Container(
-                    width: 64,
-                    height: 80,
-                    color: isDark
-                        ? AppColors.darkBackground
-                        : AppColors.shimmerBase,
-                    child: CachedNetworkImage(
-                      imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Thumbnail
+              ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(AppConstants.radiusSmall),
+                child: Container(
+                  width: 64,
+                  height: 80,
+                  color: isDark
+                      ? AppColors.darkBackground
+                      : AppColors.shimmerBase,
+                  child: CachedNetworkImage(
+                    imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => ShimmerEffect(
+                      baseColor: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                      highlightColor: isDark ? AppColors.darkSurface : AppColors.shimmerHighlight,
+                      child: Container(
+                        color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
                       ),
-                      errorWidget: (context, url, error) => Center(
-                        child: Icon(Icons.menu_book,
-                            color: theme.colorScheme.primary
-                                .withValues(alpha: 0.4)),
-                      ),
+                    ),
+                    errorWidget: (context, url, error) => Center(
+                      child: Icon(Icons.menu_book,
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.4)),
                     ),
                   ),
                 ),
+              ),
 
-                const SizedBox(width: 14),
+              const SizedBox(width: 14),
 
                 // Details
                 Expanded(
@@ -176,28 +178,23 @@ class BookCard extends StatelessWidget {
                 const SizedBox(width: 8),
 
                 // Wishlist button
-                IconButton(
-                  icon: Icon(
-                    isWishlist
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    color: isWishlist
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: PopHeartIcon(
+                    isSelected: isWishlist,
+                    activeIcon: Icons.bookmark_rounded,
+                    inactiveIcon: Icons.bookmark_border_rounded,
+                    activeColor: theme.colorScheme.primary,
+                    inactiveColor: theme.colorScheme.onSurfaceVariant,
                     size: 22,
+                    onTap: onWishlistTap,
                   ),
-                  onPressed: onWishlistTap,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: isWishlist
-                      ? 'Remove from wishlist'
-                      : 'Add to wishlist',
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   // ────────────────────────── Grid Card ──────────────────────────────────
@@ -206,94 +203,93 @@ class BookCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-        boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        child: InkWell(
+    return BounceTap(
+      onTap: onTap,
+      scaleFactor: 0.97,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover image with favorite button overlay
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppConstants.radiusMedium),
-                    ),
-                    child: Container(
-                      height: 140,
-                      width: double.infinity,
-                      color: isDark
-                          ? AppColors.darkBackground
-                          : AppColors.shimmerBase,
-                      child: CachedNetworkImage(
-                        imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        errorWidget: (context, url, error) => Center(
-                          child: Icon(
-                            Icons.menu_book_rounded,
-                            size: 40,
-                            color: theme.colorScheme.primary
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Availability badge
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: _availabilityChip(book.available),
-                  ),
-                  // Wishlist button
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Material(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: onWishlistTap,
-                        customBorder: const CircleBorder(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            isWishlist
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            color: isWishlist ? theme.colorScheme.primary : Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cover image with favorite button overlay
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppConstants.radiusMedium),
+                  ),
+                  child: Container(
+                    height: 140,
+                    width: double.infinity,
+                    color: isDark
+                        ? AppColors.darkBackground
+                        : AppColors.shimmerBase,
+                    child: CachedNetworkImage(
+                      imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => ShimmerEffect(
+                        baseColor: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                        highlightColor: isDark ? AppColors.darkSurface : AppColors.shimmerHighlight,
+                        child: Container(
+                          color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Center(
+                        child: Icon(
+                          Icons.menu_book_rounded,
+                          size: 40,
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Availability badge
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: _availabilityChip(book.available),
+                ),
+                // Wishlist button
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: PopHeartIcon(
+                      isSelected: isWishlist,
+                      activeIcon: Icons.bookmark_rounded,
+                      inactiveIcon: Icons.bookmark_border_rounded,
+                      activeColor: theme.colorScheme.primary,
+                      inactiveColor: Colors.white,
+                      size: 18,
+                      onTap: onWishlistTap,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-              // Info section
+            // Info section
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -345,8 +341,7 @@ class BookCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   // ────────────────────────── Availability Chip ─────────────────────────

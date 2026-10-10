@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
+import '../../core/animations/app_animations.dart';
 import 'qr_scanner_screen.dart';
 
 class IncomingRequestsScreen extends StatelessWidget {
@@ -71,7 +72,12 @@ class IncomingRequestsScreen extends StatelessWidget {
                   itemCount: requests.length,
                   itemBuilder: (context, index) {
                     final request = requests[index];
-                    return _RequestCard(booking: request);
+                    return FadeSlideEntry(
+                      index: index,
+                      staggerDelay: const Duration(milliseconds: 40),
+                      slideOffset: const Offset(0, 16),
+                      child: _RequestCard(booking: request),
+                    );
                   },
                 );
               },
@@ -289,6 +295,9 @@ class _RequestCardState extends State<_RequestCard> {
                     child: CachedNetworkImage(
                       imageUrl: AppConstants.getBookCover(widget.booking.bookImageUrl, widget.booking.bookId),
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => const ShimmerEffect(
+                        child: ColoredBox(color: Color(0xFFE2E8F0)),
+                      ),
                       errorWidget: (context, url, error) => Container(
                         color: Colors.grey.shade200,
                         child: const Icon(Icons.book, size: 36, color: Colors.grey),
@@ -554,14 +563,15 @@ class _RequestCardState extends State<_RequestCard> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => QRScannerScreen(
+                        AppPageRoute(
+                          child: QRScannerScreen(
                             expectedBookingId: widget.booking.id,
                             nextStatus: _isRental ? 'active' : 'completed',
                             onSuccess: () {
                               // Screen will automatically rebuild when stream updates
                             },
                           ),
+                          direction: AxisDirection.up,
                         ),
                       );
                     },
@@ -582,14 +592,15 @@ class _RequestCardState extends State<_RequestCard> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => QRScannerScreen(
+                        AppPageRoute(
+                          child: QRScannerScreen(
                             expectedBookingId: widget.booking.id,
                             nextStatus: 'completed',
                             onSuccess: () {
                               // Screen will automatically rebuild when stream updates
                             },
                           ),
+                          direction: AxisDirection.up,
                         ),
                       );
                     },
