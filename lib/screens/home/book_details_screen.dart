@@ -9,6 +9,7 @@ import '../../data/dummy_books.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
+import '../review/reviews_list_widget.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
@@ -71,6 +72,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     // Action Buttons
                     _buildActionButtons(theme),
                   ],
+
+                  const SizedBox(height: 24),
+
+                  // Reviews
+                  ReviewsListWidget(
+                    targetId: book.id,
+                    targetType: 'book',
+                    targetName: book.title,
+                  ),
                 ],
               ),
             ),
@@ -183,7 +193,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             Positioned(
               bottom: 16,
               left: 20,
-              child: _availabilityBadge(book.available),
+              child: _availabilityBadge(book.available, book.status),
             ),
           ],
         ),
@@ -333,7 +343,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 ? Icons.check_circle_outline_rounded
                 : Icons.cancel_outlined,
             'Status',
-            book.available ? 'Available' : 'Sold',
+            book.available 
+                ? 'Available' 
+                : (book.status == 'rented' ? 'Rented' : 'Sold'),
           ),
         ],
       ),
@@ -402,18 +414,31 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   // ─────────────────────────── Seller Info ─────────────────────────────────
 
   Widget _buildSellerSection(ThemeData theme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
+    return Material(
+      color: theme.cardColor,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        border: Border.all(
+        side: BorderSide(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
-      child: Row(
-        children: [
-          // Avatar
+      child: InkWell(
+        onTap: () async {
+          final sellerProfile = await DatabaseService.instance.getUserProfile(book.sellerId);
+          if (sellerProfile != null && mounted) {
+            Navigator.pushNamed(context, AppRoutes.publicProfile, arguments: sellerProfile);
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not load seller profile')),
+            );
+          }
+        },
+        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Avatar
           CircleAvatar(
             radius: 24,
             backgroundColor:
@@ -468,7 +493,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
             label: const Text('Message'),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -720,7 +747,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   // ─────────────────────────── Availability Badge ─────────────────────────
 
-  Widget _availabilityBadge(bool available) {
+  Widget _availabilityBadge(bool available, String status) {
+    String text = 'Available';
+    if (!available) {
+      text = status == 'rented' ? 'Rented' : 'Sold Out';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -741,7 +773,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           ),
           const SizedBox(width: 4),
           Text(
-            available ? 'Available' : 'Sold Out',
+            text,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,

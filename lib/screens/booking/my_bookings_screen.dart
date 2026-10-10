@@ -5,6 +5,7 @@ import '../../data/services/database_service.dart';
 import '../../core/constants/app_colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_constants.dart';
+import '../review/review_dialog.dart';
 
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({super.key});
@@ -159,12 +160,37 @@ class _BookingCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (!isCancelled)
+            if (!isCancelled && booking.status == 'pending')
               IconButton(
                 icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                 tooltip: 'Cancel Booking',
                 onPressed: () => _cancelBooking(context),
-              )
+              ),
+            if (booking.status == 'accepted')
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.rate_review_outlined),
+                tooltip: 'Leave Review',
+                onSelected: (action) {
+                  showDialog(
+                    context: context,
+                    builder: (_) => ReviewDialog(
+                      targetId: action == 'book' ? booking.bookId : booking.sellerId,
+                      targetType: action,
+                      targetName: action == 'book' ? booking.bookTitle : 'Seller',
+                    ),
+                  );
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'book',
+                    child: Text('Review Book'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'user',
+                    child: Text('Review Seller'),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

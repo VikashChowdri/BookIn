@@ -83,7 +83,7 @@ class _MyListingsScreenState extends State<MyListingsScreen>
               tabs: [
                 Tab(text: 'All (${allBooks.length})'),
                 Tab(text: 'Available (${availableBooks.length})'),
-                Tab(text: 'Sold (${soldBooks.length})'),
+                Tab(text: 'Sold/Rented (${soldBooks.length})'),
               ],
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
@@ -224,7 +224,7 @@ class _MyListingsScreenState extends State<MyListingsScreen>
                             ),
                           ),
                           const SizedBox(width: 10),
-                          _availabilityChip(book.available),
+                          _availabilityChip(book),
                         ],
                       ),
                     ],
@@ -454,21 +454,21 @@ class _MyListingsScreenState extends State<MyListingsScreen>
     );
   }
 
-  Widget _availabilityChip(bool available) {
+  Widget _availabilityChip(Book book) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: available
+        color: book.available
             ? AppColors.success.withValues(alpha: 0.15)
             : AppColors.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppConstants.radiusCircular),
       ),
       child: Text(
-        available ? 'Available' : 'Sold',
+        book.available ? 'Available' : (book.status == 'rented' ? 'Rented' : 'Sold'),
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: available ? AppColors.success : AppColors.error,
+          color: book.available ? AppColors.success : AppColors.error,
         ),
       ),
     );

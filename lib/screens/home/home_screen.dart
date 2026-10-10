@@ -124,14 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
-        elevation: 4,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Book', style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-      ),
     );
   }
 
@@ -558,9 +550,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: AppColors.error,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                'SOLD',
-                                style: TextStyle(
+                              child: Text(
+                                book.status == 'rented' ? 'RENTED' : 'SOLD',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 9,
@@ -755,9 +747,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: AppColors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              'Sold',
-                              style: TextStyle(
+                            child: Text(
+                              book.status == 'rented' ? 'Rented' : 'Sold',
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.error,

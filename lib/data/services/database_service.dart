@@ -3,6 +3,7 @@ import '../../models/book.dart';
 import '../../models/booking.dart';
 import '../../models/notification_item.dart';
 import '../../models/user_model.dart';
+import '../../models/review.dart';
 import '../../core/constants/app_constants.dart';
 
 class DatabaseService {
@@ -20,6 +21,8 @@ class DatabaseService {
       _firestore.collection(AppConstants.notificationsCollection);
   CollectionReference get _usersRef =>
       _firestore.collection(AppConstants.usersCollection);
+  CollectionReference get _reviewsRef =>
+      _firestore.collection(AppConstants.reviewsCollection);
 
   // ---------------------------------------------------------------------------
   // User Profile CRUD Operations
@@ -40,7 +43,7 @@ class DatabaseService {
 
   Future<void> updateUserProfile(UserModel user) async {
     try {
-      await _usersRef.doc(user.id).update(user.toMap());
+      await _usersRef.doc(user.id).set(user.toMap(), SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }
@@ -224,6 +227,15 @@ class DatabaseService {
     }
   }
 
+  Future<int> getUserBooksCount(String userId) async {
+    try {
+      final snapshot = await _booksRef.where('sellerId', isEqualTo: userId).count().get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Bookings CRUD Operations
   // ---------------------------------------------------------------------------
@@ -242,12 +254,13 @@ class DatabaseService {
         endDate: booking.endDate,
         totalPrice: booking.totalPrice,
         status: booking.status,
+        type: booking.type,
         createdAt: booking.createdAt,
       );
       await docRef.set(newBooking.toMap());
       
       // Optionally mark book as unavailable while pending
-      await updateBookAvailability(booking.bookId, false);
+      await _booksRef.doc(booking.bookId).update({'available': false});
 
       // Create a notification for the seller
       if (booking.buyerId != booking.sellerId) {
@@ -319,9 +332,31 @@ class DatabaseService {
   Future<void> cancelBooking(String bookingId, String bookId) async {
     try {
       await _bookingsRef.doc(bookingId).update({'status': 'cancelled'});
-      await updateBookAvailability(bookId, true);
+      await _booksRef.doc(bookId).update({'available': true, 'status': 'available'});
     } catch (e) {
       throw Exception('Failed to cancel booking: $e');
+    }
+  }
+
+  Future<int> getUserExchangesCount(String userId) async {
+    try {
+      // Get bookings where user is buyer
+      final buyerSnapshot = await _bookingsRef
+          .where('buyerId', isEqualTo: userId)
+          .where('status', isEqualTo: 'accepted')
+          .count()
+          .get();
+          
+      // Get bookings where user is seller
+      final sellerSnapshot = await _bookingsRef
+          .where('sellerId', isEqualTo: userId)
+          .where('status', isEqualTo: 'accepted')
+          .count()
+          .get();
+          
+      return (buyerSnapshot.count ?? 0) + (sellerSnapshot.count ?? 0);
+    } catch (e) {
+      return 0;
     }
   }
 
@@ -396,7 +431,16 @@ class DatabaseService {
 
       // 2. If rejected, make the book available again
       if (!accept) {
-        await updateBookAvailability(bookId, true);
+        await _booksRef.doc(bookId).update({'available': true, 'status': 'available'});
+      } else {
+        // If accepted, fetch booking type to update book status appropriately
+        final bookingDoc = await _bookingsRef.doc(bookingId).get();
+        if (bookingDoc.exists) {
+          final data = bookingDoc.data() as Map<String, dynamic>?;
+          final type = data?['type'] as String? ?? 'purchase';
+          final newBookStatus = type == 'rental' ? 'rented' : 'sold';
+          await _booksRef.doc(bookId).update({'status': newBookStatus});
+        }
       }
 
       // 3. Send a notification to the buyer
@@ -414,6 +458,61 @@ class DatabaseService {
       await notifRef.set(notif.toMap());
     } catch (e) {
       throw Exception('Failed to process booking response: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reviews CRUD Operations
+  // ---------------------------------------------------------------------------
+
+  Future<void> addReview(Review review) async {
+    try {
+      final docRef = _reviewsRef.doc();
+      final newReview = Review(
+        id: docRef.id,
+        targetId: review.targetId,
+        targetType: review.targetType,
+        reviewerId: review.reviewerId,
+        reviewerName: review.reviewerName,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+      );
+      await docRef.set(newReview.toMap());
+    } catch (e) {
+      throw Exception('Failed to add review: $e');
+    }
+  }
+
+  Stream<List<Review>> getReviewsForTargetStream(String targetId, String targetType) {
+    return _reviewsRef
+        .where('targetId', isEqualTo: targetId)
+        .where('targetType', isEqualTo: targetType)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) {
+        return Review.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  Future<double> getAverageRating(String targetId, String targetType) async {
+    try {
+      final snapshot = await _reviewsRef
+          .where('targetId', isEqualTo: targetId)
+          .where('targetType', isEqualTo: targetType)
+          .get();
+      if (snapshot.docs.isEmpty) return 0.0;
+      double total = 0;
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        total += (data['rating'] ?? 0).toDouble();
+      }
+      return total / snapshot.docs.length;
+    } catch (e) {
+      return 0.0;
     }
   }
 }

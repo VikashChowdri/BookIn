@@ -13,6 +13,7 @@ import '../screens/home/add_edit_book_screen.dart';
 import '../screens/home/book_details_screen.dart';
 import '../screens/home/book_listing_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/main_screen.dart';
 import '../screens/home/my_listings_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -69,7 +70,7 @@ class AppRoutes {
         editProfile: (context) => const EditProfileScreen(),
 
         // Member 2: Book Management
-        home: (context) => const HomeScreen(),
+        home: (context) => const MainScreen(),
         addBook: (context) => const AddEditBookScreen(),
         myListings: (context) => const MyListingsScreen(),
         myBookings: (context) => const MyBookingsScreen(),
