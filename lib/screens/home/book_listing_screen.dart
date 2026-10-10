@@ -319,15 +319,15 @@ class _BookListingScreenState extends State<BookListingScreen> {
         return BookCard(
           book: book,
           isGridMode: true,
-          isFavorite: FavoritesManager.instance.isFavorite(book),
+          isWishlist: FavoritesManager.instance.isWishlist(book),
           onTap: () {
             FavoritesManager.instance.addRecentlyViewed(book);
             Navigator.pushNamed(context, AppRoutes.bookDetails,
                 arguments: book);
           },
-          onFavoriteTap: () {
+          onWishlistTap: () {
             setState(() {
-              FavoritesManager.instance.toggleFavorite(book);
+              FavoritesManager.instance.toggleWishlist(book);
             });
           },
         );
@@ -346,15 +346,15 @@ class _BookListingScreenState extends State<BookListingScreen> {
         return BookCard(
           book: book,
           isGridMode: false,
-          isFavorite: FavoritesManager.instance.isFavorite(book),
+          isWishlist: FavoritesManager.instance.isWishlist(book),
           onTap: () {
             FavoritesManager.instance.addRecentlyViewed(book);
             Navigator.pushNamed(context, AppRoutes.bookDetails,
                 arguments: book);
           },
-          onFavoriteTap: () {
+          onWishlistTap: () {
             setState(() {
-              FavoritesManager.instance.toggleFavorite(book);
+              FavoritesManager.instance.toggleWishlist(book);
             });
           },
         );
