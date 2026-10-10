@@ -248,7 +248,7 @@ class _RequestCardState extends State<_RequestCard> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Offer: ${AppConstants.defaultCurrencySymbol}${widget.booking.totalPrice.toStringAsFixed(2)}',
+                        'Offer: ${AppConstants.defaultCurrencySymbol}${widget.booking.totalPrice.toStringAsFixed(2)}  (Status: "${widget.booking.status}")',
                         style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -260,7 +260,7 @@ class _RequestCardState extends State<_RequestCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (widget.booking.status == 'pending') ...[
+                if (widget.booking.status.trim().toLowerCase() == 'pending') ...[
                   OutlinedButton(
                     onPressed: _isLoading ? null : () => _showConfirmationDialog(false),
                     style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
@@ -274,7 +274,7 @@ class _RequestCardState extends State<_RequestCard> {
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : Text(widget.booking.type == 'rental' ? 'Accept Rental' : 'Accept Sale'),
                   ),
-                ] else if (widget.booking.status == 'accepted' || widget.booking.status == 'active') ...[
+                ] else if (widget.booking.status.trim().toLowerCase() == 'accepted' || widget.booking.status.trim().toLowerCase() == 'active') ...[
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -291,7 +291,7 @@ class _RequestCardState extends State<_RequestCard> {
                       );
                     },
                     icon: const Icon(Icons.qr_code_scanner),
-                    label: Text(widget.booking.status == 'accepted' ? 'Scan to Mark Active' : 'Scan to Complete'),
+                    label: Text(widget.booking.status.trim().toLowerCase() == 'accepted' ? 'Scan to Mark Active' : 'Scan to Complete'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: Colors.white,

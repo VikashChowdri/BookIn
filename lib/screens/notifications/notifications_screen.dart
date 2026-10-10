@@ -211,7 +211,7 @@ class _NotificationTileState extends State<_NotificationTile> {
               widget.notif.body,
               style: theme.textTheme.bodyMedium,
             ),
-            if (widget.notif.type == 'booking_request') ...[
+            if (widget.notif.type.trim().toLowerCase() == 'booking_request') ...[
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
