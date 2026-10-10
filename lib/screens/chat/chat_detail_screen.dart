@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -158,6 +159,168 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         });
       }
     }
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+  String _formatDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(date.year, date.month, date.day);
+    final difference = today.difference(messageDate).inDays;
+
+    if (difference == 0) {
+      return 'Today';
+    } else if (difference == 1) {
+      return 'Yesterday';
+    } else if (difference < 7 && difference > 1) {
+      const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return weekdays[date.weekday - 1];
+    } else {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    }
+  }
+
+  void _viewFullImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMessageOptions(BuildContext context, Message message, bool isMe) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                if (message.text.isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.copy_rounded),
+                    title: const Text('Copy Text'),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Clipboard.setData(ClipboardData(text: message.text));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Message copied to clipboard'),
+                          behavior: SnackBarBehavior.floating,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                if (message.chatImageUrl != null && message.chatImageUrl!.isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.fullscreen_rounded),
+                    title: const Text('View Full Image'),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _viewFullImage(context, message.chatImageUrl!);
+                    },
+                  ),
+                if (isMe)
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                    title: const Text(
+                      'Unsend / Delete Message',
+                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(sheetContext);
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (confirmCtx) => AlertDialog(
+                          title: const Text('Delete Message?'),
+                          content: const Text('Are you sure you want to unsend and delete this message?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(confirmCtx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(confirmCtx, true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          await _chatService.deleteMessage(widget.roomId, message.id);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Message deleted'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to delete: $e')),
+                            );
+                          }
+                        }
+                      }
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showReportDialog(BuildContext context) {
@@ -375,112 +538,167 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   itemBuilder: (context, index) {
                     final message = messages[index];
                     final isMe = message.senderId == _currentUserId;
+                    final showDateHeader = index == messages.length - 1 ||
+                        !_isSameDay(message.timestamp, messages[index + 1].timestamp);
 
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8, top: 2),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isMe ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(20).copyWith(
-                            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
-                            bottomLeft: !isMe ? const Radius.circular(4) : const Radius.circular(20),
+                    return Column(
+                      children: [
+                        if (showDateHeader)
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              _formatDateHeader(message.timestamp),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                           ),
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (message.attachedBookId != null)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: isMe ? Colors.white.withValues(alpha: 0.2) : theme.colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(12),
+                        Align(
+                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                          child: GestureDetector(
+                            onLongPress: () => _showMessageOptions(context, message, isMe),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8, top: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isMe ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(20).copyWith(
+                                  bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
+                                  bottomLeft: !isMe ? const Radius.circular(4) : const Radius.circular(20),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (message.attachedBookImageUrl != null && message.attachedBookImageUrl!.isNotEmpty)
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: CachedNetworkImage(
-                                          imageUrl: message.attachedBookImageUrl!,
-                                          width: 32,
-                                          height: 48,
-                                          fit: BoxFit.cover,
-                                          errorWidget: (context, url, error) => const Icon(Icons.book, size: 24),
+                              ),
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (message.attachedBookId != null)
+                                    InkWell(
+                                      onTap: () async {
+                                        try {
+                                          final book = await DatabaseService.instance.getBook(message.attachedBookId!);
+                                          if (!mounted || book == null) return;
+                                          Navigator.pushNamed(context, AppRoutes.bookDetails, arguments: book);
+                                        } catch (_) {}
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isMe ? Colors.white.withValues(alpha: 0.2) : theme.colorScheme.surface,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (message.attachedBookImageUrl != null && message.attachedBookImageUrl!.isNotEmpty)
+                                              ClipRRect(
+                                                borderRadius: BorderRadius.circular(4),
+                                                child: CachedNetworkImage(
+                                                  imageUrl: message.attachedBookImageUrl!,
+                                                  width: 32,
+                                                  height: 48,
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (context, url, error) => const Icon(Icons.book, size: 24),
+                                                ),
+                                              ),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    message.attachedBookTitle ?? 'Book',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isMe ? Colors.white : theme.colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    'Tap to view book',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: isMe ? Colors.white70 : theme.colorScheme.primary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        message.attachedBookTitle ?? 'Book',
+                                    ),
+                                  if (message.chatImageUrl != null && message.chatImageUrl!.isNotEmpty)
+                                    GestureDetector(
+                                      onTap: () => _viewFullImage(context, message.chatImageUrl!),
+                                      child: Container(
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: CachedNetworkImage(
+                                            imageUrl: message.chatImageUrl!,
+                                            fit: BoxFit.cover,
+                                            placeholder: (context, url) => const SizedBox(
+                                              height: 150,
+                                              child: Center(child: CircularProgressIndicator()),
+                                            ),
+                                            errorWidget: (context, url, error) => const Padding(
+                                              padding: EdgeInsets.all(16.0),
+                                              child: Icon(Icons.broken_image, size: 36, color: Colors.grey),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  if (message.text.isNotEmpty)
+                                    Text(
+                                      message.text,
+                                      style: TextStyle(
+                                        color: isMe ? Colors.white : theme.colorScheme.onSurface,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        _formatTime(message.timestamp),
                                         style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: isMe ? Colors.white : theme.colorScheme.onSurface,
+                                          fontSize: 10,
+                                          color: isMe ? Colors.white70 : Colors.grey[500],
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (message.chatImageUrl != null && message.chatImageUrl!.isNotEmpty)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: CachedNetworkImage(
-                                    imageUrl: message.chatImageUrl!,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const SizedBox(
-                                      height: 150,
-                                      child: Center(child: CircularProgressIndicator()),
-                                    ),
-                                    errorWidget: (context, url, error) => const Padding(
-                                      padding: EdgeInsets.all(16.0),
-                                      child: Icon(Icons.broken_image, size: 36, color: Colors.grey),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (message.text.isNotEmpty)
-                              Text(
-                                message.text,
-                                style: TextStyle(
-                                  color: isMe ? Colors.white : theme.colorScheme.onSurface,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  _formatTime(message.timestamp),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: isMe ? Colors.white70 : Colors.grey[500],
-                                  ),
-                                ),
-                                if (isMe) ...[
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    message.isRead ? Icons.done_all : Icons.check,
-                                    size: 14,
-                                    color: message.isRead ? Colors.blue[300] : Colors.white70,
+                                      if (isMe) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          message.isRead ? Icons.done_all : Icons.check,
+                                          size: 14,
+                                          color: message.isRead ? Colors.blue[300] : Colors.white70,
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ],
-                              ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     );
                   },
                 );

@@ -199,4 +199,45 @@ class ChatService {
       return null;
     });
   }
+
+  Future<void> deleteMessage(String roomId, String messageId) async {
+    final currentUserId = AuthService.instance.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    try {
+      final roomDoc = _firestore.collection('chats').doc(roomId);
+      await roomDoc.collection('messages').doc(messageId).delete();
+
+      // Update room's lastMessage by checking remaining messages
+      final remainingSnapshot = await roomDoc.collection('messages').get();
+      if (remainingSnapshot.docs.isNotEmpty) {
+        final remaining = remainingSnapshot.docs
+            .map((doc) => Message.fromMap(doc.id, doc.data()))
+            .toList();
+        remaining.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        final latest = remaining.first;
+
+        String latestText = latest.text;
+        if (latestText.isEmpty) {
+          if (latest.chatImageUrl != null) {
+            latestText = 'Sent an image 📸';
+          } else if (latest.attachedBookTitle != null) {
+            latestText = 'Shared a book: ${latest.attachedBookTitle}';
+          }
+        }
+
+        await roomDoc.set({
+          'lastMessage': latestText,
+          'lastMessageTime': Timestamp.fromDate(latest.timestamp),
+        }, SetOptions(merge: true));
+      } else {
+        await roomDoc.set({
+          'lastMessage': '',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      throw Exception('Failed to delete message: $e');
+    }
+  }
 }
