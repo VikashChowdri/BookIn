@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/animations/app_animations.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
-import '../../utils/app_notification.dart';
-import '../../widgets/options_menu.dart';
-import '../../models/notification_item.dart';
-import '../../data/services/auth_service.dart';
 import '../../core/theme/theme_controller.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -391,18 +388,28 @@ class _HomeScreenState extends State<HomeScreen> {
         separatorBuilder: (_, _) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final book = books[index];
-          return _buildPremiumFeaturedCard(book, theme, isDark);
+          return FadeSlideEntry(
+            index: index,
+            staggerDelay: const Duration(milliseconds: 50),
+            slideOffset: const Offset(24, 0),
+            child: _buildPremiumFeaturedCard(book, theme, isDark),
+          );
         },
       ),
     );
   }
 
   Widget _buildPremiumFeaturedCard(Book book, ThemeData theme, bool isDark) {
-    return GestureDetector(
+    return BounceTap(
       onTap: () {
         FavoritesManager.instance.addRecentlyViewed(book);
-        Navigator.pushNamed(context, AppRoutes.bookDetails, arguments: book);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.bookDetails,
+          arguments: {'book': book, 'heroTag': 'featured_${book.id}'},
+        );
       },
+      scaleFactor: 0.96,
       child: Container(
         width: 180,
         decoration: BoxDecoration(
@@ -421,22 +428,26 @@ class _HomeScreenState extends State<HomeScreen> {
             fit: StackFit.expand,
             children: [
               // Image
-              CachedNetworkImage(
-                imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
+              Hero(
+                tag: 'featured_${book.id}',
+                child: CachedNetworkImage(
+                  imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => ShimmerEffect(
+                    baseColor: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
+                    highlightColor: isDark ? AppColors.darkBackground : AppColors.shimmerHighlight,
+                    child: Container(
+                      color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
+                    ),
                   ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
-                  child: Center(
-                    child: Icon(
-                      Icons.menu_book_rounded,
-                      size: 50,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                  errorWidget: (context, url, error) => Container(
+                    color: isDark ? AppColors.darkSurface : AppColors.shimmerBase,
+                    child: Center(
+                      child: Icon(
+                        Icons.menu_book_rounded,
+                        size: 50,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                      ),
                     ),
                   ),
                 ),
@@ -582,7 +593,12 @@ class _HomeScreenState extends State<HomeScreen> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final book = books[index];
-            return _buildGridBookCard(book, theme, isDark);
+            return FadeSlideEntry(
+              index: index,
+              staggerDelay: const Duration(milliseconds: 35),
+              slideOffset: const Offset(0, 16),
+              child: _buildGridBookCard(book, theme, isDark),
+            );
           },
           childCount: books.length,
         ),
@@ -593,11 +609,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildGridBookCard(Book book, ThemeData theme, bool isDark) {
     final isWishlist = FavoritesManager.instance.isWishlist(book);
 
-    return GestureDetector(
+    return BounceTap(
       onTap: () {
         FavoritesManager.instance.addRecentlyViewed(book);
-        Navigator.pushNamed(context, AppRoutes.bookDetails, arguments: book);
+        Navigator.pushNamed(
+          context,
+          AppRoutes.bookDetails,
+          arguments: {'book': book, 'heroTag': 'grid_${book.id}'},
+        );
       },
+      scaleFactor: 0.97,
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -623,20 +644,27 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                    child: Container(
-                      color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-                      child: CachedNetworkImage(
-                        imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        errorWidget: (context, url, error) => Center(
-                          child: Icon(Icons.menu_book,
-                              size: 40,
-                              color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                  Hero(
+                    tag: 'grid_${book.id}',
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                      child: Container(
+                        color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                        child: CachedNetworkImage(
+                          imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => ShimmerEffect(
+                            baseColor: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                            highlightColor: isDark ? AppColors.darkSurface : AppColors.shimmerHighlight,
+                            child: Container(
+                              color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Center(
+                            child: Icon(Icons.menu_book,
+                                size: 40,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                          ),
                         ),
                       ),
                     ),
@@ -644,23 +672,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          FavoritesManager.instance.toggleWishlist(book);
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.black.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isWishlist ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                          color: isWishlist ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                          size: 18,
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.black.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: PopHeartIcon(
+                        isSelected: isWishlist,
+                        activeIcon: Icons.bookmark_rounded,
+                        inactiveIcon: Icons.bookmark_border_rounded,
+                        activeColor: theme.colorScheme.primary,
+                        inactiveColor: theme.colorScheme.onSurfaceVariant,
+                        size: 18,
+                        onTap: () {
+                          setState(() {
+                            FavoritesManager.instance.toggleWishlist(book);
+                          });
+                        },
                       ),
                     ),
                   ),

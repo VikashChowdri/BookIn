@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/animations/app_animations.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -44,21 +45,26 @@ class _WishlistScreenState extends State<WishlistScreen> {
               itemCount: wishlist.length,
               itemBuilder: (context, index) {
                 final book = wishlist[index];
-                return BookCard(
-                  book: book,
-                  isWishlist: true,
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.bookDetails,
-                      arguments: book,
-                    );
-                  },
-                  onWishlistTap: () {
-                    setState(() {
-                      FavoritesManager.instance.toggleWishlist(book);
-                    });
-                  },
+                return FadeSlideEntry(
+                  index: index,
+                  staggerDelay: const Duration(milliseconds: 40),
+                  slideOffset: const Offset(0, 16),
+                  child: BookCard(
+                    book: book,
+                    isWishlist: true,
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.bookDetails,
+                        arguments: book,
+                      );
+                    },
+                    onWishlistTap: () {
+                      setState(() {
+                        FavoritesManager.instance.toggleWishlist(book);
+                      });
+                    },
+                  ),
                 );
               },
             ),
