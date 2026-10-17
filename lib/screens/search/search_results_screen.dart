@@ -101,8 +101,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           _allBooks = books;
           
           // Cache derived data
-          _cachedCategories = _allBooks.map((b) => b.category).toSet().toList();
-          _cachedDepartments = _allBooks.map((b) => b.department).toSet().toList();
+          _cachedCategories = _allBooks
+              .map((b) => b.category.trim())
+              .where((c) => c.isNotEmpty)
+              .toSet()
+              .toList();
+          _cachedDepartments = _allBooks
+              .map((b) => b.department.trim())
+              .where((d) => d.isNotEmpty)
+              .toSet()
+              .toList();
           
           final top = _allBooks.fold<double>(0, (m, b) => b.price > m ? b.price : m);
           final rounded = ((top / 50).ceil() * 50).toDouble();

@@ -116,7 +116,15 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    
+
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to post a book.')),
+      );
+      return;
+    }
+
     setState(() { _isLoading = true; });
 
     try {
@@ -131,8 +139,8 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
         department: _selectedDepartment ?? 'Other',
         imageUrl: _imageUrlController.text.trim(),
         description: _descriptionController.text.trim(),
-        sellerName: AuthService.instance.currentUser?.displayName ?? 'User',
-        sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
+        sellerName: currentUser.displayName ?? 'User',
+        sellerId: currentUser.uid,
         available: _isAvailable,
         price: _offerForSale ? (double.tryParse(_priceController.text.trim()) ?? 0) : 0,
         rentPrice: _offerForRent ? (double.tryParse(_rentPriceController.text.trim()) ?? 0) : 0,
