@@ -20,7 +20,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'All';
 
   List<String> _getCategories(List<Book> books) {
-    final cats = books.map((b) => b.category).toSet().toList()..sort();
+    final cats = books
+        .map((b) => b.category.trim())
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return ['All', ...cats];
   }
 
