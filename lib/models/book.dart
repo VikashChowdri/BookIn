@@ -56,7 +56,7 @@ class Book {
       title: map['title'] ?? '',
       author: map['author'] ?? '',
       subject: map['subject'] ?? '',
-      category: map['category'] ?? '',
+      category: (map['category'] as String? ?? '').trim().isEmpty ? 'Other' : (map['category'] as String).trim(),
       department: map['department'] ?? '',
       imageUrl: map['imageUrl'] ?? '',
       description: map['description'] ?? '',

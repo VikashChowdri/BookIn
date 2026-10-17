@@ -151,12 +151,20 @@ class AppRoutes {
       );
     }
 
-    // Book Details — requires Book argument
+    // Book Details — accepts either a raw Book or a Map {'book': Book, 'heroTag': String?}
     if (settings.name == bookDetails) {
-      final book = settings.arguments as Book?;
+      Book? book;
+      String? heroTag;
+      if (settings.arguments is Book) {
+        book = settings.arguments as Book;
+      } else if (settings.arguments is Map<String, dynamic>) {
+        final args = settings.arguments as Map<String, dynamic>;
+        book = args['book'] as Book?;
+        heroTag = args['heroTag'] as String?;
+      }
       if (book != null) {
         return AppPageRoute(
-          child: BookDetailsScreen(book: book),
+          child: BookDetailsScreen(book: book, heroTag: heroTag),
           settings: settings,
         );
       }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
+import '../../data/services/database_service.dart';
 import '../../models/book.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
@@ -29,53 +29,62 @@ class _BookListingScreenState extends State<BookListingScreen> {
     _selectedCategory = widget.initialCategory ?? 'All';
   }
 
-  List<String> get _categories {
-    final cats = dummyBooks.map((b) => b.category).toSet().toList()..sort();
+  List<String> _getCategories(List<Book> books) {
+    final cats = books
+        .map((b) => b.category.trim())
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return ['All', ...cats];
   }
 
-  List<String> get _departments {
-    final deps = dummyBooks.map((b) => b.department).toSet().toList()..sort();
+  List<String> _getDepartments(List<Book> books) {
+    final deps = books
+        .map((b) => b.department.trim())
+        .where((d) => d.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return ['All', ...deps];
   }
 
-  List<Book> get _filteredBooks {
-    var books = List<Book>.from(dummyBooks);
+  List<Book> _getFilteredBooks(List<Book> books) {
+    var result = List<Book>.from(books);
 
     // Category filter
     if (_selectedCategory != 'All') {
-      books = books.where((b) => b.category == _selectedCategory).toList();
+      result = result.where((b) => b.category == _selectedCategory).toList();
     }
 
     // Department filter
     if (_selectedDepartment != null && _selectedDepartment != 'All') {
-      books = books.where((b) => b.department == _selectedDepartment).toList();
+      result = result.where((b) => b.department == _selectedDepartment).toList();
     }
 
     // Sort
     switch (_sortBy) {
       case 'Price: Low to High':
-        books.sort((a, b) => a.price.compareTo(b.price));
+        result.sort((a, b) => a.price.compareTo(b.price));
         break;
       case 'Price: High to Low':
-        books.sort((a, b) => b.price.compareTo(a.price));
+        result.sort((a, b) => b.price.compareTo(a.price));
         break;
       case 'Title A-Z':
-        books.sort((a, b) => a.title.compareTo(b.title));
+        result.sort((a, b) => a.title.compareTo(b.title));
         break;
       case 'Newest':
       default:
         break;
     }
 
-    return books;
+    return result;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final books = _filteredBooks;
 
     return Scaffold(
       appBar: AppBar(
@@ -96,52 +105,71 @@ class _BookListingScreenState extends State<BookListingScreen> {
           const AppOptionsMenu(),
         ],
       ),
-      body: Column(
-        children: [
-          // ── Filter Bar ──
-          _buildFilterBar(theme, isDark),
+      body: StreamBuilder<List<Book>>(
+        stream: DatabaseService.instance.getBooksStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-          // ── Results count ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${books.length} book${books.length == 1 ? '' : 's'} found',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (_selectedCategory != 'All' ||
-                    (_selectedDepartment != null &&
-                        _selectedDepartment != 'All'))
-                  TextButton.icon(
-                    onPressed: () => setState(() {
-                      _selectedCategory = 'All';
-                      _selectedDepartment = null;
-                    }),
-                    icon: const Icon(Icons.clear_all_rounded, size: 18),
-                    label: const Text('Clear filters'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      textStyle: const TextStyle(fontSize: 12),
+          final allBooks = snapshot.data ?? [];
+          final categories = _getCategories(allBooks);
+          final departments = _getDepartments(allBooks);
+          final books = _getFilteredBooks(allBooks);
+
+          // Reset invalid selections after data loads
+          if (!categories.contains(_selectedCategory)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _selectedCategory = 'All');
+            });
+          }
+
+          return Column(
+            children: [
+              _buildFilterBar(theme, isDark, categories, departments),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${books.length} book${books.length == 1 ? '' : 's'} found',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-
-          // ── Book List / Grid ──
-          Expanded(
-            child: books.isEmpty
-                ? _buildEmptyState(theme)
-                : _isGridView
-                    ? _buildGridView(books, theme)
-                    : _buildListView(books, theme),
-          ),
-        ],
+                    if (_selectedCategory != 'All' ||
+                        (_selectedDepartment != null &&
+                            _selectedDepartment != 'All'))
+                      TextButton.icon(
+                        onPressed: () => setState(() {
+                          _selectedCategory = 'All';
+                          _selectedDepartment = null;
+                        }),
+                        icon: const Icon(Icons.clear_all_rounded, size: 18),
+                        label: const Text('Clear filters'),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: books.isEmpty
+                    ? _buildEmptyState(theme)
+                    : _isGridView
+                        ? _buildGridView(books, theme)
+                        : _buildListView(books, theme),
+              ),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, AppRoutes.addBook),
@@ -155,7 +183,7 @@ class _BookListingScreenState extends State<BookListingScreen> {
 
   // ─────────────────────────── Filter Bar ─────────────────────────────────
 
-  Widget _buildFilterBar(ThemeData theme, bool isDark) {
+  Widget _buildFilterBar(ThemeData theme, bool isDark, List<String> categories, List<String> departments) {
     return Container(
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
@@ -173,10 +201,10 @@ class _BookListingScreenState extends State<BookListingScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              itemCount: _categories.length,
+              itemCount: categories.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final cat = _categories[index];
+                final cat = categories[index];
                 final selected = cat == _selectedCategory;
                 return ChoiceChip(
                   label: Text(cat),
@@ -232,7 +260,7 @@ class _BookListingScreenState extends State<BookListingScreen> {
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface,
                         ),
-                        items: _departments
+                        items: departments
                             .map((d) => DropdownMenuItem(
                                   value: d,
                                   child: Text(d,
