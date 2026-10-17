@@ -7,6 +7,7 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
 import '../../utils/favorites_manager.dart';
 import '../../widgets/book_card.dart';
+import '../../widgets/app_image.dart';
 import '../review/reviews_list_widget.dart';
 
 class PublicProfileScreen extends StatelessWidget {
@@ -28,16 +29,15 @@ class PublicProfileScreen extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundColor: theme.colorScheme.primary,
-              backgroundImage: user.profilePictureUrl.isNotEmpty && 
-                              !user.profilePictureUrl.contains('unsplash')
-                  ? NetworkImage(user.profilePictureUrl)
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+              backgroundImage: AppImageHelper.hasCustomAvatar(user.profilePictureUrl)
+                  ? AppImageHelper.getImageProvider(user.profilePictureUrl)
                   : null,
-              child: user.profilePictureUrl.isEmpty || user.profilePictureUrl.contains('unsplash')
+              child: !AppImageHelper.hasCustomAvatar(user.profilePictureUrl)
                   ? Text(
                       user.publicName.isNotEmpty ? user.publicName[0].toUpperCase() : 'U',
                       style: theme.textTheme.headlineLarge?.copyWith(
-                        color: theme.colorScheme.onPrimary,
+                        color: theme.colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     )

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
 import '../../data/services/database_service.dart';
@@ -179,16 +179,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                     _userCache[otherUserId] = otherUser;
                                   }
 
-                                  final hasImage = otherUser != null && 
-                                      otherUser.profilePictureUrl.isNotEmpty &&
-                                      !otherUser.profilePictureUrl.contains('unsplash');
+                                  final hasImage = AppImageHelper.hasCustomAvatar(otherUser?.profilePictureUrl);
 
                                   return ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     leading: CircleAvatar(
                                       radius: 26,
                                       backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                      backgroundImage: hasImage ? CachedNetworkImageProvider(otherUser.profilePictureUrl) : null,
+                                      backgroundImage: hasImage ? AppImageHelper.getImageProvider(otherUser?.profilePictureUrl) : null,
                                       onBackgroundImageError: hasImage ? (error, stack) {} : null,
                                       child: !hasImage
                                           ? Icon(Icons.person, color: theme.colorScheme.primary)

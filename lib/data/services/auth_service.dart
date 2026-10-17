@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'database_service.dart';
 import '../../models/user_model.dart';
-import '../../core/constants/app_constants.dart';
 
 /// A singleton service that wraps [FirebaseAuth] and exposes every
 /// authentication operation the app needs.
@@ -62,7 +61,7 @@ class AuthService {
           username: username,
           email: email.trim(),
           publicName: publicName,
-          profilePictureUrl: AppConstants.defaultUserAvatar,
+          profilePictureUrl: '',
           createdAt: DateTime.now(),
         );
         await DatabaseService.instance.createUserProfile(userModel);

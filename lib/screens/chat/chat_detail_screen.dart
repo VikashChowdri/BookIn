@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import '../../widgets/app_image.dart';
+import '../../data/services/storage_service.dart';
 import 'dart:async';
 import '../../data/services/auth_service.dart';
 import '../../data/services/chat_service.dart';
@@ -121,30 +119,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (pickedFile == null) return;
-
-    setState(() {
-      _isUploadingImage = true;
-    });
-
     try {
-      final file = File(pickedFile.path);
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('chat_images')
-          .child(widget.roomId)
-          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final base64Image = await StorageService.instance.pickAndUploadChatImage(context);
+      if (base64Image == null) return;
 
-      final uploadTask = await ref.putFile(file);
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      setState(() {
+        _isUploadingImage = true;
+      });
 
       await _chatService.sendMessage(
         widget.roomId,
         widget.otherUser.id,
         '',
-        chatImageUrl: downloadUrl,
+        chatImageUrl: base64Image,
       );
     } catch (e) {
       if (mounted) {
@@ -198,7 +185,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             InteractiveViewer(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
+                child: AppImage(
                   imageUrl: imageUrl,
                   fit: BoxFit.contain,
                 ),
@@ -413,8 +400,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasImage = widget.otherUser.profilePictureUrl.isNotEmpty &&
-        !widget.otherUser.profilePictureUrl.contains('unsplash');
+    final hasImage = AppImageHelper.hasCustomAvatar(widget.otherUser.profilePictureUrl);
 
     return Scaffold(
       appBar: AppBar(
@@ -432,7 +418,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               CircleAvatar(
                 radius: 18,
                 backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                backgroundImage: hasImage ? CachedNetworkImageProvider(widget.otherUser.profilePictureUrl) : null,
+                backgroundImage: hasImage ? AppImageHelper.getImageProvider(widget.otherUser.profilePictureUrl) : null,
                 onBackgroundImageError: hasImage ? (error, stack) {} : null,
                 child: !hasImage
                     ? Icon(Icons.person, size: 20, color: theme.colorScheme.primary)
@@ -607,12 +593,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                             if (message.attachedBookImageUrl != null && message.attachedBookImageUrl!.isNotEmpty)
                                               ClipRRect(
                                                 borderRadius: BorderRadius.circular(4),
-                                                child: CachedNetworkImage(
+                                                child: AppImage(
                                                   imageUrl: message.attachedBookImageUrl!,
                                                   width: 32,
                                                   height: 48,
                                                   fit: BoxFit.cover,
-                                                  errorWidget: (context, url, error) => const Icon(Icons.book, size: 24),
+                                                  errorWidget: const Icon(Icons.book, size: 24),
                                                 ),
                                               ),
                                             const SizedBox(width: 8),
@@ -648,7 +634,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         margin: const EdgeInsets.only(bottom: 8),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(12),
-                                          child: CachedNetworkImage(
+                                          child: AppImage(
                                             imageUrl: message.chatImageUrl!,
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) => const SizedBox(
@@ -716,7 +702,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   if (widget.contextBook!.imageUrl.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: CachedNetworkImage(
+                      child: AppImage(
                         imageUrl: widget.contextBook!.imageUrl,
                         width: 32,
                         height: 48,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/app_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
@@ -149,7 +149,7 @@ class _MainScreenState extends State<MainScreen> {
                   stream: user != null ? DatabaseService.instance.getUserProfileStream(user.uid) : const Stream.empty(),
                   builder: (context, snapshot) {
                     final profileUrl = snapshot.data?.profilePictureUrl;
-                    final hasImage = profileUrl != null && profileUrl.isNotEmpty && !profileUrl.contains('unsplash');
+                    final hasImage = AppImageHelper.hasCustomAvatar(profileUrl);
 
                     return Container(
                       width: 28,
@@ -163,7 +163,7 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                       child: CircleAvatar(
                         backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                        backgroundImage: hasImage ? CachedNetworkImageProvider(profileUrl) : null,
+                        backgroundImage: hasImage ? AppImageHelper.getImageProvider(profileUrl) : null,
                         child: !hasImage
                             ? Icon(Icons.person, size: 16, color: theme.colorScheme.primary)
                             : null,
