@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../routes/app_routes.dart';
 import '../review/reviews_list_widget.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -87,21 +88,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: theme.colorScheme.primary,
-              backgroundImage: avatarUrl.isNotEmpty && !avatarUrl.contains('unsplash')
-                  ? NetworkImage(avatarUrl)
-                  : null,
-              child: avatarUrl.isEmpty || avatarUrl.contains('unsplash')
-                  ? Text(
-                      displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        color: theme.colorScheme.onPrimary,
-                        fontWeight: FontWeight.bold,
+            GestureDetector(
+              onTap: () async {
+                await Navigator.pushNamed(context, AppRoutes.editProfile, arguments: _userModel);
+                _loadUser();
+              },
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 52,
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    backgroundImage: avatarUrl.isNotEmpty && !avatarUrl.contains('unsplash')
+                        ? CachedNetworkImageProvider(avatarUrl)
+                        : null,
+                    child: avatarUrl.isEmpty || avatarUrl.contains('unsplash')
+                        ? Text(
+                            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: theme.colorScheme.primary,
+                      child: const Icon(
+                        Icons.edit_rounded,
+                        size: 16,
+                        color: Colors.white,
                       ),
-                    )
-                  : null,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Text(

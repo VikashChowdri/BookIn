@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
+import '../../data/services/storage_service.dart';
 import '../../models/book.dart';
 
 class AddEditBookScreen extends StatefulWidget {
@@ -106,6 +107,42 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
   }
 
   bool _isLoading = false;
+  bool _isUploadingCover = false;
+  bool _showUrlField = false;
+
+  Future<void> _pickAndUploadCover() async {
+    setState(() => _isUploadingCover = true);
+    try {
+      final downloadUrl = await StorageService.instance.pickAndUploadBookImage(
+        context,
+        bookId: widget.book?.id,
+      );
+      if (downloadUrl != null) {
+        setState(() {
+          _imageUrlController.text = downloadUrl;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Book cover uploaded successfully!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingCover = false);
+    }
+  }
 
   Future<void> _saveBook() async {
     if (!_offerForSale && !_offerForRent) {
@@ -210,23 +247,8 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Image Preview ──
+              // ── Book Cover Section ──
               _buildImagePreview(theme, isDark),
-
-              const SizedBox(height: 20),
-
-              // ── Image URL ──
-              _buildSectionLabel(theme, 'Book Cover URL'),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _imageUrlController,
-                decoration: const InputDecoration(
-                  hintText: 'https://example.com/book-cover.jpg',
-                  prefixIcon: Icon(Icons.link_rounded),
-                ),
-                keyboardType: TextInputType.url,
-                onChanged: (_) => setState(() {}),
-              ),
 
               const SizedBox(height: 20),
 
@@ -511,30 +533,141 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
   Widget _buildImagePreview(ThemeData theme, bool isDark) {
     final url = _imageUrlController.text.trim();
 
-    return Container(
-      height: 180,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel(theme, 'Book Cover'),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _isUploadingCover ? null : _pickAndUploadCover,
+          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+          child: Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
+              borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                width: 1.5,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (url.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      errorWidget: (context, url, error) =>
+                          _imagePlaceholder(theme, isError: true),
+                    )
+                  else
+                    _imagePlaceholder(theme),
+
+                  // Uploading progress overlay
+                  if (_isUploadingCover)
+                    Container(
+                      color: Colors.black54,
+                      child: const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: Colors.white),
+                            SizedBox(height: 12),
+                            Text(
+                              'Uploading book cover...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // Quick action buttons overlay when an image is present
+                  if (url.isNotEmpty && !_isUploadingCover)
+                    Positioned(
+                      bottom: 10,
+                      right: 10,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                              tooltip: 'Change Photo',
+                              onPressed: _pickAndUploadCover,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                              tooltip: 'Remove Photo',
+                              onPressed: () => setState(() => _imageUrlController.clear()),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        child: url.isNotEmpty
-            ? CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton.icon(
+              onPressed: _isUploadingCover ? null : _pickAndUploadCover,
+              icon: const Icon(Icons.add_a_photo_rounded, size: 18),
+              label: Text(url.isEmpty ? 'Take or Pick Photo' : 'Change Photo'),
+            ),
+            TextButton(
+              onPressed: () => setState(() => _showUrlField = !_showUrlField),
+              child: Text(
+                _showUrlField ? 'Hide URL input' : 'Enter image URL',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 12,
                 ),
-                errorWidget: (context, url, error) =>
-                    _imagePlaceholder(theme, isError: true),
-              )
-            : _imagePlaceholder(theme),
-      ),
+              ),
+            ),
+          ],
+        ),
+        if (_showUrlField) ...[
+          const SizedBox(height: 4),
+          TextFormField(
+            controller: _imageUrlController,
+            decoration: const InputDecoration(
+              hintText: 'https://example.com/book-cover.jpg',
+              prefixIcon: Icon(Icons.link_rounded),
+            ),
+            keyboardType: TextInputType.url,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ],
     );
   }
 
@@ -543,14 +676,29 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            isError ? Icons.broken_image_outlined : Icons.add_photo_alternate_outlined,
-            size: 48,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isError ? Icons.broken_image_outlined : Icons.add_a_photo_outlined,
+              size: 36,
+              color: theme.colorScheme.primary,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            isError ? 'Invalid image URL' : 'Add a book cover image',
+            isError ? 'Could not load image' : 'Tap to take or choose book photo',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Camera or Gallery',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
