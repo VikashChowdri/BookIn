@@ -3,7 +3,7 @@ import '../../models/user_model.dart';
 import '../../data/services/database_service.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/storage_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import 'package:image_picker/image_picker.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -84,14 +84,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                          backgroundImage: _userModel?.profilePictureUrl != null &&
-                                  _userModel!.profilePictureUrl.isNotEmpty &&
-                                  !_userModel!.profilePictureUrl.contains('unsplash')
-                              ? CachedNetworkImageProvider(_userModel!.profilePictureUrl)
+                          backgroundImage: AppImageHelper.hasCustomAvatar(_userModel?.profilePictureUrl)
+                              ? AppImageHelper.getImageProvider(_userModel!.profilePictureUrl)
                               : null,
-                          child: _userModel?.profilePictureUrl == null || 
-                                  _userModel!.profilePictureUrl.isEmpty || 
-                                  _userModel!.profilePictureUrl.contains('unsplash')
+                          child: !AppImageHelper.hasCustomAvatar(_userModel?.profilePictureUrl)
                               ? Text(
                                   _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'U',
                                   style: theme.textTheme.headlineLarge?.copyWith(
@@ -192,9 +188,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _showAvatarOptions() {
-    final hasPhoto = _userModel?.profilePictureUrl != null &&
-        _userModel!.profilePictureUrl.isNotEmpty &&
-        !_userModel!.profilePictureUrl.contains('unsplash');
+    final hasPhoto = AppImageHelper.hasCustomAvatar(_userModel?.profilePictureUrl);
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;

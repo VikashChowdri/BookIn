@@ -8,7 +8,7 @@ import '../../routes/app_routes.dart';
 import '../../utils/favorites_manager.dart';
 import '../../widgets/book_card.dart';
 import 'search_widgets.dart';
- 
+import '../../widgets/app_image.dart';
  
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -212,11 +212,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      backgroundImage: user.profilePictureUrl.isNotEmpty && 
-                              !user.profilePictureUrl.contains('unsplash')
-                          ? NetworkImage(user.profilePictureUrl)
+                      backgroundImage: AppImageHelper.hasCustomAvatar(user.profilePictureUrl)
+                          ? AppImageHelper.getImageProvider(user.profilePictureUrl)
                           : null,
-                      child: user.profilePictureUrl.isEmpty || user.profilePictureUrl.contains('unsplash')
+                      child: !AppImageHelper.hasCustomAvatar(user.profilePictureUrl)
                           ? Text(
                               user.publicName.isNotEmpty ? user.publicName[0].toUpperCase() : 'U',
                               style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/auth_service.dart';
@@ -174,7 +174,7 @@ class _MyListingsScreenState extends State<MyListingsScreen>
                     color: isDark
                         ? AppColors.darkBackground
                         : AppColors.shimmerBase,
-                    child: CachedNetworkImage(
+                    child: AppImage(
                       imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                       fit: BoxFit.cover,
                       placeholder: (context, url) => const Center(

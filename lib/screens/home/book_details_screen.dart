@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import '../booking/booking_dialog.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
@@ -181,7 +181,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             // Book cover image
             Hero(
               tag: widget.heroTag ?? 'book_cover_${book.id}',
-              child: CachedNetworkImage(
+              child: AppImage(
                 imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                 fit: BoxFit.cover,
                 placeholder: (context, url) => ShimmerEffect(
