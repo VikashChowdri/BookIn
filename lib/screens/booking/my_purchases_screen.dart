@@ -3,7 +3,6 @@ import '../../models/booking.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../core/constants/app_constants.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../widgets/app_image.dart';
 import 'ticket_screen.dart';
 
