@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../data/services/storage_service.dart';
+import '../../widgets/app_image.dart';
 import '../../models/book.dart';
 
 class AddEditBookScreen extends StatefulWidget {
@@ -558,7 +558,7 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
                 fit: StackFit.expand,
                 children: [
                   if (url.isNotEmpty)
-                    CachedNetworkImage(
+                    AppImage(
                       imageUrl: url,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => const Center(

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/booking.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/user_model.dart';
 import '../../routes/app_routes.dart';
@@ -292,13 +292,13 @@ class _RequestCardState extends State<_RequestCard> {
                   child: SizedBox(
                     width: 70,
                     height: 95,
-                    child: CachedNetworkImage(
+                    child: AppImage(
                       imageUrl: AppConstants.getBookCover(widget.booking.bookImageUrl, widget.booking.bookId),
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => const ShimmerEffect(
+                      placeholder: const ShimmerEffect(
                         child: ColoredBox(color: Color(0xFFE2E8F0)),
                       ),
-                      errorWidget: (context, url, error) => Container(
+                      errorWidget: Container(
                         color: Colors.grey.shade200,
                         child: const Icon(Icons.book, size: 36, color: Colors.grey),
                       ),
@@ -365,10 +365,10 @@ class _RequestCardState extends State<_RequestCard> {
                                 CircleAvatar(
                                   radius: 11,
                                   backgroundColor: theme.colorScheme.primary,
-                                  backgroundImage: buyer.profilePictureUrl.isNotEmpty && !buyer.profilePictureUrl.contains('unsplash')
-                                      ? NetworkImage(buyer.profilePictureUrl)
+                                  backgroundImage: AppImageHelper.hasCustomAvatar(buyer.profilePictureUrl)
+                                      ? AppImageHelper.getImageProvider(buyer.profilePictureUrl)
                                       : null,
-                                  child: buyer.profilePictureUrl.isEmpty || buyer.profilePictureUrl.contains('unsplash')
+                                  child: !AppImageHelper.hasCustomAvatar(buyer.profilePictureUrl)
                                       ? Text(
                                           buyer.publicName.isNotEmpty ? buyer.publicName[0].toUpperCase() : 'U',
                                           style: TextStyle(fontSize: 10, color: theme.colorScheme.onPrimary),

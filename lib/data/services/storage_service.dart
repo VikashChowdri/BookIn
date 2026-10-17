@@ -1,16 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter/material.dart';
-import '../../core/constants/app_constants.dart';
 
+/// A service that handles image picking and converts pictures to compressed
+/// Base64 data URIs stored directly in Firestore, completely eliminating
+/// the need for Firebase Object Storage buckets.
 class StorageService {
   StorageService._();
   static final StorageService instance = StorageService._();
 
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
 
   /// Shows a modal bottom sheet to let the user choose between Camera and Gallery.
@@ -112,9 +114,8 @@ class StorageService {
     );
   }
 
-  /// Picks and uploads a profile picture with 1:1 cropping.
-  /// If [source] is null, opens a sheet to let user choose Camera or Gallery.
-  /// Returns the download URL if successful, or null if cancelled.
+  /// Picks and compresses a profile picture into a Base64 data URI (1:1 square).
+  /// Stored directly in Firestore, bypassing Firebase Object Storage.
   Future<String?> pickAndUploadProfilePicture(
     BuildContext context,
     String userId, {
@@ -130,15 +131,15 @@ class StorageService {
 
       final XFile? image = await _picker.pickImage(
         source: imageSource,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+        maxWidth: 250,
+        maxHeight: 250,
+        imageQuality: 70,
       );
 
       if (image == null) return null;
 
       // Crop image to square (with fallback if crop fails or is unsupported)
-      String uploadPath = image.path;
+      Uint8List bytes;
       try {
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: image.path,
@@ -159,39 +160,25 @@ class StorageService {
           ],
         );
         if (croppedFile != null) {
-          uploadPath = croppedFile.path;
+          bytes = await croppedFile.readAsBytes();
+        } else {
+          bytes = await image.readAsBytes();
         }
       } catch (cropErr) {
         debugPrint('Image cropping skipped/unsupported: $cropErr');
+        bytes = await image.readAsBytes();
       }
 
-      final Reference ref = _storage
-          .ref()
-          .child(AppConstants.userAvatarsFolder)
-          .child('$userId.jpg');
-
-      if (kIsWeb) {
-        final bytes = await File(uploadPath).readAsBytes();
-        final metadata = SettableMetadata(contentType: 'image/jpeg');
-        await ref.putData(bytes, metadata);
-      } else {
-        await ref.putFile(File(uploadPath));
-      }
-
-      final downloadUrl = await ref.getDownloadURL();
-      final urlWithTimestamp = downloadUrl.contains('?')
-          ? '$downloadUrl&t=${DateTime.now().millisecondsSinceEpoch}'
-          : '$downloadUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-      return urlWithTimestamp;
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      return base64String;
     } catch (e) {
-      debugPrint('Error picking or uploading profile picture: $e');
-      throw Exception('Failed to upload profile picture: $e');
+      debugPrint('Error picking profile picture: $e');
+      throw Exception('Failed to process image: $e');
     }
   }
 
-  /// Picks and uploads a book cover image (supports Camera or Gallery).
-  /// If [source] is null, opens a sheet to let user choose Camera or Gallery.
-  /// Returns the download URL if successful, or null if cancelled.
+  /// Picks and compresses a book cover image into a Base64 data URI (3:4 aspect ratio).
+  /// Stored directly in Firestore, bypassing Firebase Object Storage.
   Future<String?> pickAndUploadBookImage(
     BuildContext context, {
     String? bookId,
@@ -207,15 +194,15 @@ class StorageService {
 
       final XFile? image = await _picker.pickImage(
         source: imageSource,
-        maxWidth: 1200,
-        maxHeight: 1600,
-        imageQuality: 85,
+        maxWidth: 400,
+        maxHeight: 550,
+        imageQuality: 65,
       );
 
       if (image == null) return null;
 
       // Crop image with 3:4 book aspect ratio (with fallback)
-      String uploadPath = image.path;
+      Uint8List bytes;
       try {
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: image.path,
@@ -236,35 +223,52 @@ class StorageService {
           ],
         );
         if (croppedFile != null) {
-          uploadPath = croppedFile.path;
+          bytes = await croppedFile.readAsBytes();
+        } else {
+          bytes = await image.readAsBytes();
         }
       } catch (cropErr) {
         debugPrint('Book image cropping skipped/unsupported: $cropErr');
+        bytes = await image.readAsBytes();
       }
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '${bookId ?? 'book'}_$timestamp.jpg';
-      final Reference ref = _storage
-          .ref()
-          .child(AppConstants.bookImagesFolder)
-          .child(fileName);
-
-      if (kIsWeb) {
-        final bytes = await File(uploadPath).readAsBytes();
-        final metadata = SettableMetadata(contentType: 'image/jpeg');
-        await ref.putData(bytes, metadata);
-      } else {
-        await ref.putFile(File(uploadPath));
-      }
-
-      final downloadUrl = await ref.getDownloadURL();
-      final urlWithTimestamp = downloadUrl.contains('?')
-          ? '$downloadUrl&t=$timestamp'
-          : '$downloadUrl?t=$timestamp';
-      return urlWithTimestamp;
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      return base64String;
     } catch (e) {
-      debugPrint('Error picking or uploading book cover: $e');
-      throw Exception('Failed to upload book cover: $e');
+      debugPrint('Error picking book cover: $e');
+      throw Exception('Failed to process book cover: $e');
+    }
+  }
+
+  /// Picks and compresses a chat image into a Base64 data URI.
+  /// Stored directly in Firestore message documents, bypassing Firebase Object Storage.
+  Future<String?> pickAndUploadChatImage(
+    BuildContext context, {
+    ImageSource? source,
+  }) async {
+    try {
+      final imageSource = source ?? await showImageSourceSheet(
+        context,
+        title: 'Send Image',
+      );
+
+      if (imageSource == null) return null;
+
+      final XFile? image = await _picker.pickImage(
+        source: imageSource,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 60,
+      );
+
+      if (image == null) return null;
+
+      final bytes = await image.readAsBytes();
+      final base64String = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      return base64String;
+    } catch (e) {
+      debugPrint('Error picking chat image: $e');
+      throw Exception('Failed to process chat image: $e');
     }
   }
 }

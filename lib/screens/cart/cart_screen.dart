@@ -7,7 +7,7 @@ import '../../models/booking.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../routes/app_routes.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -153,7 +153,7 @@ class _CartScreenState extends State<CartScreen> {
             child: SizedBox(
               width: 60,
               height: 80,
-              child: CachedNetworkImage(
+              child: AppImage(
                 imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(

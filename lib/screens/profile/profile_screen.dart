@@ -5,7 +5,7 @@ import '../../models/user_model.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../routes/app_routes.dart';
 import '../review/reviews_list_widget.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -98,10 +98,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   CircleAvatar(
                     radius: 52,
                     backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                    backgroundImage: avatarUrl.isNotEmpty && !avatarUrl.contains('unsplash')
-                        ? CachedNetworkImageProvider(avatarUrl)
+                    backgroundImage: AppImageHelper.hasCustomAvatar(avatarUrl)
+                        ? AppImageHelper.getImageProvider(avatarUrl)
                         : null,
-                    child: avatarUrl.isEmpty || avatarUrl.contains('unsplash')
+                    child: !AppImageHelper.hasCustomAvatar(avatarUrl)
                         ? Text(
                             displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
                             style: theme.textTheme.headlineLarge?.copyWith(
