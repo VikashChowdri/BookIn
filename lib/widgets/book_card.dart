@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'app_image.dart';
 import '../core/animations/app_animations.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_constants.dart';
@@ -67,7 +67,7 @@ class BookCard extends StatelessWidget {
                   color: isDark
                       ? AppColors.darkBackground
                       : AppColors.shimmerBase,
-                  child: CachedNetworkImage(
+                  child: AppImage(
                     imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                     fit: BoxFit.cover,
                     placeholder: (context, url) => ShimmerEffect(
@@ -238,7 +238,7 @@ class BookCard extends StatelessWidget {
                     color: isDark
                         ? AppColors.darkBackground
                         : AppColors.shimmerBase,
-                    child: CachedNetworkImage(
+                    child: AppImage(
                       imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                       fit: BoxFit.cover,
                       placeholder: (context, url) => ShimmerEffect(

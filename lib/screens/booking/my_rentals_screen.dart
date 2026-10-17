@@ -3,7 +3,7 @@ import '../../models/booking.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../core/constants/app_colors.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import '../../core/constants/app_constants.dart';
 import '../review/review_dialog.dart';
 import 'ticket_screen.dart';
@@ -121,10 +121,10 @@ class _BookingCard extends StatelessWidget {
               child: SizedBox(
                 width: 60,
                 height: 80,
-                child: CachedNetworkImage(
+                child: AppImage(
                   imageUrl: AppConstants.getBookCover(booking.bookImageUrl, booking.bookId),
                   fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => const Icon(Icons.book),
+                  errorWidget: const Icon(Icons.book),
                 ),
               ),
             ),

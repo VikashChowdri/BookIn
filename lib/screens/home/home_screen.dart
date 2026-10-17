@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/app_image.dart';
 import '../../core/animations/app_animations.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -435,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Image
               Hero(
                 tag: 'featured_${book.id}',
-                child: CachedNetworkImage(
+                child: AppImage(
                   imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                   fit: BoxFit.cover,
                   placeholder: (context, url) => ShimmerEffect(
@@ -655,7 +655,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                       child: Container(
                         color: isDark ? AppColors.darkBackground : AppColors.shimmerBase,
-                        child: CachedNetworkImage(
+                        child: AppImage(
                           imageUrl: AppConstants.getBookCover(book.imageUrl, book.id),
                           fit: BoxFit.cover,
                           placeholder: (context, url) => ShimmerEffect(
