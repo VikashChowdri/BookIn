@@ -3,7 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../data/dummy_books.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/database_service.dart';
 import '../../models/book.dart';
@@ -116,7 +115,15 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    
+
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to post a book.')),
+      );
+      return;
+    }
+
     setState(() { _isLoading = true; });
 
     try {
@@ -131,8 +138,8 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
         department: _selectedDepartment ?? 'Other',
         imageUrl: _imageUrlController.text.trim(),
         description: _descriptionController.text.trim(),
-        sellerName: AuthService.instance.currentUser?.displayName ?? 'User',
-        sellerId: AuthService.instance.currentUser?.uid ?? 'unknown',
+        sellerName: currentUser.displayName ?? 'User',
+        sellerId: currentUser.uid,
         available: _isAvailable,
         price: _offerForSale ? (double.tryParse(_priceController.text.trim()) ?? 0) : 0,
         rentPrice: _offerForRent ? (double.tryParse(_rentPriceController.text.trim()) ?? 0) : 0,
@@ -182,10 +189,16 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
         title: Text(_isEditMode ? 'Edit Book' : 'Add New Book'),
         actions: [
           TextButton.icon(
-            onPressed: _saveBook,
-            icon: Icon(
-                _isEditMode ? Icons.save_rounded : Icons.check_rounded,
-                size: 20),
+            onPressed: _isLoading ? null : _saveBook,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    _isEditMode ? Icons.save_rounded : Icons.check_rounded,
+                    size: 20),
             label: Text(_isEditMode ? 'Save' : 'Post'),
           ),
         ],
@@ -268,64 +281,50 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
 
               const SizedBox(height: 16),
 
-              // ── Category & Department Row ──
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionLabel(theme, 'Category *'),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedCategory,
-                          hint: const Text('Select'),
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.category_outlined),
-                          ),
-                          items: _categories
-                              .map((c) => DropdownMenuItem(
-                                    value: c,
-                                    child: Text(c),
-                                  ))
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedCategory = v),
-                          validator: (v) =>
-                              v == null ? 'Pick a category' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionLabel(theme, 'Department *'),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedDepartment,
-                          hint: const Text('Select'),
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.school_outlined),
-                          ),
-                          items: _departments
-                              .map((d) => DropdownMenuItem(
-                                    value: d,
-                                    child: Text(d),
-                                  ))
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedDepartment = v),
-                          validator: (v) =>
-                              v == null ? 'Pick a department' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              // ── Category ──
+              _buildSectionLabel(theme, 'Category *'),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                isExpanded: true,
+                hint: const Text('Select Category'),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: _categories
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c, overflow: TextOverflow.ellipsis),
+                        ))
+                    .toList(),
+                onChanged: (v) =>
+                    setState(() => _selectedCategory = v),
+                validator: (v) =>
+                    v == null ? 'Pick a category' : null,
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Department ──
+              _buildSectionLabel(theme, 'Department *'),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedDepartment,
+                isExpanded: true,
+                hint: const Text('Select Department'),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.school_outlined),
+                ),
+                items: _departments
+                    .map((d) => DropdownMenuItem(
+                          value: d,
+                          child: Text(d, overflow: TextOverflow.ellipsis),
+                        ))
+                    .toList(),
+                onChanged: (v) =>
+                    setState(() => _selectedDepartment = v),
+                validator: (v) =>
+                    v == null ? 'Pick a department' : null,
               ),
 
               const SizedBox(height: 16),
@@ -472,19 +471,32 @@ class _AddEditBookScreenState extends State<AddEditBookScreen> {
               // ── Submit Button ──
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _saveBook,
-                  icon: Icon(
-                    _isEditMode
-                        ? Icons.save_rounded
-                        : Icons.publish_rounded,
-                    size: 20,
-                  ),
-                  label: Text(
-                      _isEditMode ? 'Save Changes' : 'Post Book'),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveBook,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 52),
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isEditMode
+                                  ? Icons.save_rounded
+                                  : Icons.publish_rounded,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isEditMode ? 'Save Changes' : 'Post Book',
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ],
