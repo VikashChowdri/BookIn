@@ -167,14 +167,6 @@ flutter devices
 flutter run
 ```
 
-### 5. Running Tests
-
-```bash
-flutter test test/animations_test.dart
-```
-
----
-
 ## Authors
 
 Developed collaboratively by:
